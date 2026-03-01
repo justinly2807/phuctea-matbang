@@ -10,6 +10,20 @@ interface LocationModalProps {
   onSubmit: (info: LocationInfo) => void;
 }
 
+// Format number with dots: 9000000 → 9.000.000
+function formatNumber(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Format phone: 0901234567 → 0901 234 567
+function formatPhone(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 4) return digits;
+  if (digits.length <= 7) return `${digits.slice(0, 4)} ${digits.slice(4)}`;
+  return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+}
+
 export default function LocationModal({ onSubmit }: LocationModalProps) {
   const [form, setForm] = useState<LocationInfo>({
     addressStreet: '',
@@ -67,11 +81,11 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
             />
             <div>
               <h2 className="text-xl font-bold text-primary">Phúc Tea</h2>
-              <p className="text-sm text-gray-300">Khảo Sát Mặt Bằng</p>
+              <p className="text-sm text-gray-300">Bộ tiêu chí đánh giá mặt bằng</p>
             </div>
           </div>
-          <p className="text-sm text-gray-400 mt-2">
-            Vui lòng nhập thông tin địa điểm bạn muốn khảo sát
+          <p className="text-sm text-gray-400 mt-2 italic">
+            Vui lòng nhập thông tin địa điểm mà bạn muốn khảo sát phía dưới.
           </p>
         </div>
 
@@ -163,26 +177,31 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
               />
               <input
                 type="tel"
-                placeholder="SĐT chủ nhà"
-                value={form.landlordPhone}
-                onChange={(e) => updateField('landlordPhone', e.target.value)}
+                placeholder="SĐT chủ nhà (VD: 0901 234 567)"
+                value={formatPhone(form.landlordPhone)}
+                onChange={(e) => updateField('landlordPhone', e.target.value.replace(/\D/g, ''))}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
               />
               <div className="grid grid-cols-2 gap-3">
                 <input
                   type="text"
+                  inputMode="numeric"
                   placeholder="Giá thuê (VNĐ/tháng)"
-                  value={form.rentPrice}
-                  onChange={(e) => updateField('rentPrice', e.target.value)}
+                  value={form.rentPrice ? formatNumber(form.rentPrice) : ''}
+                  onChange={(e) => updateField('rentPrice', e.target.value.replace(/\D/g, ''))}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
                 />
-                <input
-                  type="text"
-                  placeholder="Diện tích (m²)"
-                  value={form.areaSqm}
-                  onChange={(e) => updateField('areaSqm', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Diện tích"
+                    value={form.areaSqm}
+                    onChange={(e) => updateField('areaSqm', e.target.value.replace(/[^\d.]/g, ''))}
+                    className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium pointer-events-none">m²</span>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <input
