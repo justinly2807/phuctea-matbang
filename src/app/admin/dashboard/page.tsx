@@ -24,6 +24,8 @@ export default function DashboardPage() {
   const [showCompare, setShowCompare] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [migrationNeeded, setMigrationNeeded] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
@@ -91,12 +93,77 @@ export default function DashboardPage() {
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       if (prev.includes(id)) return prev.filter((s) => s !== id);
-      if (prev.length >= 3) return prev;
       return [...prev, id];
     });
   };
 
+  const selectAll = () => {
+    if (selected.length === filteredEvals.length) {
+      setSelected([]);
+    } else {
+      setSelected(filteredEvals.map((e) => e.id));
+    }
+  };
+
   const compareItems = evaluations.filter((e) => selected.includes(e.id));
+
+  const handleDelete = async () => {
+    if (selected.length === 0) return;
+    setDeleting(true);
+
+    try {
+      // Get images to delete from storage
+      const toDelete = evaluations.filter((e) => selected.includes(e.id));
+      const allImages = toDelete.flatMap((e) => e.images || []);
+
+      // Delete images from Supabase Storage
+      if (allImages.length > 0 && isSupabaseConfigured) {
+        const filePaths = allImages
+          .map((url) => {
+            const match = url.match(/survey-media\/(.+)$/);
+            return match ? match[1] : null;
+          })
+          .filter(Boolean) as string[];
+
+        if (filePaths.length > 0) {
+          await supabase.storage.from('survey-media').remove(filePaths);
+        }
+      }
+
+      // Delete from Supabase database
+      if (isSupabaseConfigured) {
+        const { error } = await supabase
+          .from('evaluations')
+          .delete()
+          .in('id', selected);
+
+        if (error) throw error;
+      }
+
+      // Also remove from localStorage if any local- IDs
+      const localIds = selected.filter((id) => id.startsWith('local-'));
+      if (localIds.length > 0) {
+        const stored = JSON.parse(localStorage.getItem('evaluations') || '[]');
+        const remaining = stored.filter((e: Evaluation) => !localIds.includes(e.id));
+        localStorage.setItem('evaluations', JSON.stringify(remaining));
+      }
+
+      // Remove from survey history
+      const history = JSON.parse(localStorage.getItem('survey_history') || '[]');
+      const updatedHistory = history.filter((h: { id: string }) => !selected.includes(h.id));
+      localStorage.setItem('survey_history', JSON.stringify(updatedHistory));
+
+      // Refresh
+      setSelected([]);
+      setShowDeleteConfirm(false);
+      await fetchEvaluations();
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Lỗi khi xóa. Vui lòng thử lại.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('admin_auth');
@@ -171,7 +238,7 @@ export default function DashboardPage() {
             {(['all', 'feasible', 'potential', 'risky'] as const).map((f) => (
               <button
                 key={f}
-                onClick={() => setFilter(f)}
+                onClick={() => { setFilter(f); setSelected([]); }}
                 className={`px-4 py-2 rounded-full text-xs font-medium transition-all ${
                   filter === f
                     ? 'bg-primary text-dark shadow-md'
@@ -183,15 +250,36 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {selected.length >= 2 && (
-            <button
-              onClick={() => setShowCompare(true)}
-              className="bg-dark text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-dark-light transition flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-              So sánh ({selected.length})
-            </button>
-          )}
+          <div className="flex gap-2 flex-wrap">
+            {filteredEvals.length > 0 && (
+              <button
+                onClick={selectAll}
+                className="px-4 py-2 rounded-full text-xs font-medium border border-gray-200 text-gray-500 hover:border-primary hover:text-dark transition"
+              >
+                {selected.length === filteredEvals.length ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+              </button>
+            )}
+
+            {selected.length >= 2 && selected.length <= 3 && (
+              <button
+                onClick={() => setShowCompare(true)}
+                className="bg-dark text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-dark-light transition flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                So sánh ({selected.length})
+              </button>
+            )}
+
+            {selected.length >= 1 && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="bg-danger text-white px-5 py-2 rounded-full text-xs font-bold hover:bg-red-600 transition flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Xóa ({selected.length})
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Evaluation List */}
@@ -363,10 +451,51 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {selected.length > 0 && selected.length < 2 && (
-          <p className="text-center text-xs text-gray-400">Chọn thêm {2 - selected.length} mặt bằng để so sánh (tối đa 3)</p>
+        {selected.length === 1 && (
+          <p className="text-center text-xs text-gray-400">Chọn thêm 1 mặt bằng để so sánh, hoặc bấm Xóa để xóa</p>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl">
+            <div className="w-14 h-14 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-7 h-7 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <h3 className="font-bold text-dark text-lg mb-2">Xác nhận xóa</h3>
+            <p className="text-sm text-gray-500 mb-1">
+              Bạn có chắc muốn xóa <strong className="text-dark">{selected.length}</strong> khảo sát đã chọn?
+            </p>
+            <p className="text-xs text-red-400 mb-5">Hành động này không thể hoàn tác. Ảnh đính kèm cũng sẽ bị xóa.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl font-bold text-sm border-2 border-gray-200 text-gray-500 hover:border-dark hover:text-dark transition"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-xl font-bold text-sm bg-danger text-white hover:bg-red-600 transition flex items-center justify-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Đang xóa...
+                  </>
+                ) : (
+                  'Xóa ngay'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Compare Modal */}
       {showCompare && compareItems.length >= 2 && (

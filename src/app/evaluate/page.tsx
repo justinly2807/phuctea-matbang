@@ -118,16 +118,66 @@ export default function EvaluatePage() {
     setUploadPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Convert HEIC/non-web images to JPEG using canvas (works on Safari/iOS where HEIC is supported)
+  const convertToJpeg = async (file: File): Promise<File> => {
+    // If already a web-compatible format or video, return as-is
+    const webTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (webTypes.includes(file.type) || file.type.startsWith('video/') || !file.type.startsWith('image/')) {
+      return file;
+    }
+
+    // Convert HEIC/HEIF/other to JPEG via canvas
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        // Limit max dimension to 2048px to reduce file size
+        const maxDim = 2048;
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(
+          (blob) => {
+            URL.revokeObjectURL(img.src);
+            if (blob) {
+              resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }));
+            } else {
+              resolve(file);
+            }
+          },
+          'image/jpeg',
+          0.85
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(img.src);
+        resolve(file); // Fallback: upload original
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const uploadToSupabase = async (): Promise<string[]> => {
     if (!isSupabaseConfigured || uploadedFiles.length === 0) return [];
 
     const urls: string[] = [];
     for (const file of uploadedFiles) {
-      const ext = file.name.split('.').pop();
+      // Convert HEIC/non-web images to JPEG before uploading
+      const uploadFile = await convertToJpeg(file);
+      const ext = uploadFile.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage
         .from('survey-media')
-        .upload(fileName, file);
+        .upload(fileName, uploadFile, {
+          contentType: uploadFile.type,
+        });
 
       if (!error) {
         const { data: urlData } = supabase.storage
