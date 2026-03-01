@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { LocationInfo } from '@/types';
+import { PROVINCES } from '@/lib/provinces';
 
 const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
 
@@ -129,13 +130,16 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                 {errors.addressDistrict && <p className="text-danger text-xs mt-1">Bắt buộc</p>}
               </div>
               <div>
-                <input
-                  type="text"
-                  placeholder="Tỉnh / Thành phố *"
+                <select
                   value={form.addressCity}
                   onChange={(e) => updateField('addressCity', e.target.value)}
-                  className={`w-full px-4 py-3 rounded-xl border ${errors.addressCity ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm`}
-                />
+                  className={`w-full px-4 py-3 rounded-xl border ${errors.addressCity ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm ${!form.addressCity ? 'text-gray-400' : 'text-gray-900'}`}
+                >
+                  <option value="" disabled>Tỉnh / TP *</option>
+                  {PROVINCES.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
                 {errors.addressCity && <p className="text-danger text-xs mt-1">Bắt buộc</p>}
               </div>
             </div>
@@ -178,7 +182,7 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
               <input
                 type="tel"
                 placeholder="SĐT chủ nhà (VD: 0901 234 567)"
-                value={formatPhone(form.landlordPhone)}
+                value={formatPhone(form.landlordPhone || '')}
                 onChange={(e) => updateField('landlordPhone', e.target.value.replace(/\D/g, ''))}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
               />
