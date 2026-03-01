@@ -4,15 +4,31 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { Evaluation, getVerdictLabel, getVerdictColor, getVerdictDescription, getFullAddress } from '@/types';
-import { CATEGORIES, getCriteriaByCategory } from '@/lib/criteria';
+import { CATEGORIES } from '@/lib/criteria';
 import { calculateCategoryScores } from '@/lib/scoring';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { analyzeEvaluation } from '@/lib/analyzer';
+import { CRITERIA } from '@/lib/criteria';
 
 // Format number with dots: 9000000 → 9.000.000
 function formatNumber(value: string): string {
   const digits = value.replace(/\D/g, '');
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Smart summary based on category scores
+function getSmartSummary(categoryScores: { categoryName: string; percentage: number }[], verdict: string): string {
+  const sorted = [...categoryScores].sort((a, b) => b.percentage - a.percentage);
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+
+  if (verdict === 'feasible') {
+    return `Mặt bằng đạt tiêu chuẩn tốt. "${best.categoryName}" là điểm mạnh nổi bật (${best.percentage}%).${worst.percentage < 70 ? ` Lưu ý "${worst.categoryName}" chỉ đạt ${worst.percentage}%.` : ''}`;
+  }
+  if (verdict === 'potential') {
+    return `Mặt bằng có tiềm năng với "${best.categoryName}" đạt ${best.percentage}%. Cần cải thiện "${worst.categoryName}" (${worst.percentage}%) để tối ưu hơn.`;
+  }
+  return `Mặt bằng có nhiều hạn chế. "${worst.categoryName}" chỉ đạt ${worst.percentage}%, cần đặc biệt lưu ý trước khi quyết định.`;
 }
 
 export default function ResultPage({ params }: { params: Promise<{ id: string }> }) {
@@ -127,13 +143,14 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
   const verdictColor = getVerdictColor(evaluation.verdict);
   const verdictLabel = getVerdictLabel(evaluation.verdict);
   const images = evaluation.images || [];
+  const analysis = analyzeEvaluation(evaluation.scores);
 
   return (
     <div className="min-h-screen bg-bg pb-24">
       <Header />
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Score Hero */}
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+        {/* 1. Score Hero */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 text-center" style={{ background: `linear-gradient(135deg, ${verdictColor}15, ${verdictColor}05)` }}>
             <div
@@ -153,102 +170,28 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
 
-        {/* AI Analysis */}
-        {(() => {
-          const analysis = analyzeEvaluation(evaluation.scores);
-          return (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="px-5 py-4 border-b border-gray-100">
-                <h3 className="font-bold text-dark flex items-center gap-2">
-                  <span className="text-lg">📊</span> Phân tích mặt bằng
-                </h3>
-              </div>
+        {/* 2. Smart Summary */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+          <p className="text-sm text-gray-700 leading-relaxed">
+            💡 {getSmartSummary(categoryScores, evaluation.verdict)}
+          </p>
+        </div>
 
-              <div className="p-5 space-y-5">
-                {/* Điểm mạnh */}
-                {analysis.strengths.length > 0 && (
-                  <div>
-                    <h4 className="flex items-center gap-2 font-semibold text-success text-sm mb-3">
-                      <span className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-xs">✅</span>
-                      Điểm mạnh ({analysis.strengths.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {analysis.strengths.map((s, i) => (
-                        <div key={i} className="flex gap-3 bg-green-50 rounded-xl p-3">
-                          <span className="text-success text-sm mt-0.5 flex-shrink-0">●</span>
-                          <div>
-                            <p className="text-sm font-semibold text-dark">{s.name}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{s.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Điểm yếu */}
-                {analysis.weaknesses.length > 0 && (
-                  <div>
-                    <h4 className="flex items-center gap-2 font-semibold text-danger text-sm mb-3">
-                      <span className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center text-xs">⚠️</span>
-                      Điểm yếu cần lưu ý ({analysis.weaknesses.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {analysis.weaknesses.map((w, i) => (
-                        <div key={i} className="flex gap-3 bg-red-50 rounded-xl p-3">
-                          <span className="text-danger text-sm mt-0.5 flex-shrink-0">●</span>
-                          <div>
-                            <p className="text-sm font-semibold text-dark">{w.name}</p>
-                            <p className="text-xs text-gray-500 mt-0.5">{w.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Gợi ý cải thiện */}
-                <div>
-                  <h4 className="flex items-center gap-2 font-semibold text-primary-dark text-sm mb-3">
-                    <span className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center text-xs">💡</span>
-                    Gợi ý cải thiện
-                  </h4>
-                  <div className="space-y-2">
-                    {analysis.suggestions.map((s, i) => (
-                      <div key={i} className="flex gap-3 bg-yellow-50 rounded-xl p-3">
-                        <span className="text-primary-dark font-bold text-sm mt-0.5 flex-shrink-0">{i + 1}.</span>
-                        <p className="text-sm text-gray-700">{s}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Không có điểm mạnh hay yếu rõ ràng */}
-                {analysis.strengths.length === 0 && analysis.weaknesses.length === 0 && (
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-500">Tất cả tiêu chí đều ở mức trung bình. Xem chi tiết bên dưới để đánh giá cụ thể hơn.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Category Scores */}
+        {/* 3. Category Scores (compact) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h3 className="font-bold text-dark mb-4">Điểm theo nhóm tiêu chí</h3>
-          <div className="space-y-3">
+          <h3 className="font-bold text-dark mb-3 text-sm">📊 Điểm theo nhóm</h3>
+          <div className="space-y-2.5">
             {categoryScores.map((cs) => (
               <div key={cs.categoryId}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-xs font-medium text-gray-600">
                     {CATEGORIES.find((c) => c.id === cs.categoryId)?.icon} {cs.categoryName}
                   </span>
-                  <span className="text-sm font-bold text-dark">{cs.score}/{cs.maxScore}</span>
+                  <span className="text-xs font-bold text-dark">{cs.score}/{cs.maxScore}</span>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                <div className="w-full bg-gray-100 rounded-full h-2">
                   <div
-                    className="h-2.5 rounded-full transition-all duration-500"
+                    className="h-2 rounded-full transition-all duration-500"
                     style={{
                       width: `${cs.percentage}%`,
                       backgroundColor: cs.percentage >= 80 ? '#22C55E' : cs.percentage >= 60 ? '#EAB308' : '#EF4444',
@@ -260,57 +203,72 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
 
-        {/* Detail Scores */}
+        {/* 4. Strengths & Weaknesses (concise) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-bold text-dark">Chi tiết từng tiêu chí</h3>
+          <div className="px-5 py-3 border-b border-gray-100">
+            <h3 className="font-bold text-dark text-sm">📋 Nhận xét nhanh</h3>
           </div>
-          {CATEGORIES.map((cat) => {
-            const criteria = getCriteriaByCategory(cat.id);
-            return (
-              <div key={cat.id}>
-                <div className="px-5 py-2 bg-gray-50 border-b border-gray-100">
-                  <span className="text-xs font-semibold text-gray-500 uppercase">
-                    {cat.icon} {cat.name}
-                  </span>
+          <div className="p-4 space-y-4">
+            {/* Điểm mạnh - compact */}
+            {analysis.strengths.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-green-600 mb-2">✅ Điểm mạnh ({analysis.strengths.length})</p>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.strengths.map((s, i) => {
+                    const score = evaluation.scores[String(CRITERIA.find(c => c.name === s.name)?.id)] || 0;
+                    return (
+                      <span key={i} className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1.5 rounded-lg">
+                        {s.name} <span className="text-green-500 font-bold">{score}/5</span>
+                      </span>
+                    );
+                  })}
                 </div>
-                {criteria.map((c) => {
-                  const score = evaluation.scores[String(c.id)] || 0;
-                  const option = c.options.find((o) => o.score === score);
-                  return (
-                    <div key={c.id} className="px-5 py-3 border-b border-gray-50 flex items-center justify-between">
-                      <div className="flex-1 min-w-0 mr-3">
-                        <p className="text-sm font-medium text-dark">{c.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{option?.label || '-'}</p>
-                      </div>
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <div
-                            key={s}
-                            className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold ${
-                              s <= score
-                                ? s <= 2 ? 'bg-danger text-white' : s <= 3 ? 'bg-warning text-dark' : 'bg-success text-white'
-                                : 'bg-gray-100 text-gray-300'
-                            }`}
-                          >
-                            {s}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
-            );
-          })}
+            )}
+
+            {/* Điểm yếu - compact */}
+            {analysis.weaknesses.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-red-600 mb-2">⚠️ Cần lưu ý ({analysis.weaknesses.length})</p>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.weaknesses.map((w, i) => {
+                    const score = evaluation.scores[String(CRITERIA.find(c => c.name === w.name)?.id)] || 0;
+                    return (
+                      <span key={i} className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-xs font-medium px-2.5 py-1.5 rounded-lg">
+                        {w.name} <span className="text-red-500 font-bold">{score}/5</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Không có điểm mạnh/yếu rõ ràng */}
+            {analysis.strengths.length === 0 && analysis.weaknesses.length === 0 && (
+              <p className="text-xs text-gray-500 text-center py-2">Tất cả tiêu chí đều ở mức trung bình (3/5).</p>
+            )}
+
+            {/* Gợi ý cải thiện - compact */}
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-xs font-semibold text-amber-600 mb-2">💡 Gợi ý ({analysis.suggestions.length})</p>
+              <div className="space-y-1.5">
+                {analysis.suggestions.map((s, i) => (
+                  <div key={i} className="flex gap-2">
+                    <span className="text-amber-500 font-bold text-xs mt-0.5 flex-shrink-0">{i + 1}.</span>
+                    <p className="text-xs text-gray-600 leading-relaxed">{s}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Media Gallery */}
+        {/* 5. Media Gallery */}
         {images.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-dark flex items-center gap-2">
-                <span className="text-lg">📸</span> Hình ảnh mặt bằng ({images.length})
+            <div className="px-5 py-3 border-b border-gray-100">
+              <h3 className="font-bold text-dark text-sm flex items-center gap-2">
+                📸 Hình ảnh mặt bằng ({images.length})
               </h3>
             </div>
             <div className="p-4">
@@ -346,13 +304,13 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           </div>
         )}
 
-        {/* Location Info */}
+        {/* 6. Location Info (compact) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-          <h3 className="font-bold text-dark">Thông tin mặt bằng</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <h3 className="font-bold text-dark text-sm">📍 Thông tin mặt bằng</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             <InfoRow label="Địa chỉ" value={getFullAddress(evaluation)} />
             {evaluation.landlord_name && <InfoRow label="Chủ nhà" value={evaluation.landlord_name} />}
-            {evaluation.landlord_phone && <InfoRow label="SĐT chủ nhà" value={evaluation.landlord_phone} />}
+            {evaluation.landlord_phone && <InfoRow label="SĐT" value={evaluation.landlord_phone} />}
             {evaluation.rent_price && (
               <InfoRow
                 label="Giá thuê"
@@ -360,14 +318,14 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
               />
             )}
             {evaluation.area_sqm && <InfoRow label="Diện tích" value={`${evaluation.area_sqm} m²`} />}
-            {evaluation.surveyor_name && <InfoRow label="Người khảo sát" value={evaluation.surveyor_name} />}
-            {evaluation.survey_date && <InfoRow label="Ngày khảo sát" value={new Date(evaluation.survey_date).toLocaleDateString('vi-VN')} />}
+            {evaluation.surveyor_name && <InfoRow label="Người KS" value={evaluation.surveyor_name} />}
+            {evaluation.survey_date && <InfoRow label="Ngày KS" value={new Date(evaluation.survey_date).toLocaleDateString('vi-VN')} />}
           </div>
 
           {/* Competitor Notes */}
           {evaluation.competitor_notes && (
             <div className="pt-3 border-t border-gray-100">
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">Ghi chú đối thủ cạnh tranh</p>
+              <p className="text-xs font-semibold text-gray-500 mb-1.5">🏪 Đối thủ cạnh tranh</p>
               <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">
                 {evaluation.competitor_notes}
               </p>
@@ -439,8 +397,8 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-2">
-      <span className="text-gray-400 flex-shrink-0 w-24">{label}:</span>
-      <span className="font-medium text-dark">{value}</span>
+      <span className="text-gray-400 flex-shrink-0 w-20 text-xs">{label}:</span>
+      <span className="font-medium text-dark text-sm">{value}</span>
     </div>
   );
 }
