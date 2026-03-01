@@ -9,6 +9,12 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const ScoreRadar = dynamic(() => import('@/components/ScoreRadar'), { ssr: false });
 
+// Format number with dots: 9000000 → 9.000.000
+function formatNumber(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -16,6 +22,7 @@ export default function DashboardPage() {
   const [filter, setFilter] = useState<'all' | VerdictType>('all');
   const [selected, setSelected] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
@@ -159,6 +166,8 @@ export default function DashboardPage() {
           <div className="space-y-3">
             {filteredEvals.map((ev) => {
               const isSelected = selected.includes(ev.id);
+              const isExpanded = expandedId === ev.id;
+              const images = ev.images || [];
               return (
                 <div
                   key={ev.id}
@@ -192,7 +201,10 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 min-w-0" onClick={() => router.push(`/result/${ev.id}`)} style={{ cursor: 'pointer' }}>
+                    <div
+                      className="flex-1 min-w-0 cursor-pointer"
+                      onClick={() => setExpandedId(isExpanded ? null : ev.id)}
+                    >
                       <p className="font-semibold text-dark text-sm truncate">{getFullAddress(ev)}</p>
                       <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <span
@@ -202,7 +214,10 @@ export default function DashboardPage() {
                           {getVerdictLabel(ev.verdict)}
                         </span>
                         {ev.surveyor_name && (
-                          <span className="text-[10px] text-gray-400">{ev.surveyor_name}</span>
+                          <span className="text-[10px] text-gray-400">👤 {ev.surveyor_name}</span>
+                        )}
+                        {images.length > 0 && (
+                          <span className="text-[10px] text-gray-400">📸 {images.length}</span>
                         )}
                         <span className="text-[10px] text-gray-400">
                           {new Date(ev.created_at).toLocaleDateString('vi-VN')}
@@ -210,15 +225,101 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Arrow */}
+                    {/* Expand/Arrow */}
                     <svg
-                      className="w-5 h-5 text-gray-300 flex-shrink-0 cursor-pointer"
-                      onClick={() => router.push(`/result/${ev.id}`)}
+                      className={`w-5 h-5 text-gray-300 flex-shrink-0 cursor-pointer transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                      onClick={() => setExpandedId(isExpanded ? null : ev.id)}
                       fill="none" viewBox="0 0 24 24" stroke="currentColor"
                     >
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
+
+                  {/* Expanded Detail */}
+                  {isExpanded && (
+                    <div className="px-4 pb-4 border-t border-gray-100 pt-3 space-y-3">
+                      {/* Quick info */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                        {ev.surveyor_name && (
+                          <div className="bg-gray-50 rounded-lg p-2">
+                            <span className="text-gray-400">Người khảo sát</span>
+                            <p className="font-semibold text-dark">{ev.surveyor_name}</p>
+                          </div>
+                        )}
+                        {ev.rent_price && (
+                          <div className="bg-gray-50 rounded-lg p-2">
+                            <span className="text-gray-400">Giá thuê</span>
+                            <p className="font-semibold text-dark">
+                              {formatNumber(ev.rent_price)} VNĐ/{ev.rent_unit === 'year' ? 'năm' : 'tháng'}
+                            </p>
+                          </div>
+                        )}
+                        {ev.area_sqm && (
+                          <div className="bg-gray-50 rounded-lg p-2">
+                            <span className="text-gray-400">Diện tích</span>
+                            <p className="font-semibold text-dark">{ev.area_sqm} m²</p>
+                          </div>
+                        )}
+                        {ev.landlord_name && (
+                          <div className="bg-gray-50 rounded-lg p-2">
+                            <span className="text-gray-400">Chủ nhà</span>
+                            <p className="font-semibold text-dark">{ev.landlord_name}</p>
+                          </div>
+                        )}
+                        {ev.landlord_phone && (
+                          <div className="bg-gray-50 rounded-lg p-2">
+                            <span className="text-gray-400">SĐT chủ nhà</span>
+                            <p className="font-semibold text-dark">{ev.landlord_phone}</p>
+                          </div>
+                        )}
+                        {ev.survey_date && (
+                          <div className="bg-gray-50 rounded-lg p-2">
+                            <span className="text-gray-400">Ngày khảo sát</span>
+                            <p className="font-semibold text-dark">{new Date(ev.survey_date).toLocaleDateString('vi-VN')}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Competitor notes */}
+                      {ev.competitor_notes && (
+                        <div className="bg-orange-50 rounded-xl p-3">
+                          <p className="text-xs font-semibold text-orange-600 mb-1">🏪 Đối thủ cạnh tranh</p>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap">{ev.competitor_notes}</p>
+                        </div>
+                      )}
+
+                      {/* Images gallery */}
+                      {images.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 mb-2">📸 Hình ảnh ({images.length})</p>
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {images.map((url, i) => {
+                              const isVideo = /\.(mp4|mov|avi|webm)$/i.test(url);
+                              return isVideo ? (
+                                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+                                  <video src={url} controls preload="metadata" className="w-full h-full object-cover" />
+                                </div>
+                              ) : (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="aspect-square rounded-lg overflow-hidden bg-gray-100 block hover:opacity-90 transition">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={url} alt={`Hình ${i + 1}`} className="w-full h-full object-cover" />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action: view full result */}
+                      <button
+                        onClick={() => router.push(`/result/${ev.id}`)}
+                        className="w-full bg-primary/10 text-primary-dark font-bold text-sm py-2.5 rounded-xl hover:bg-primary/20 transition flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                        Xem chi tiết đầy đủ
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

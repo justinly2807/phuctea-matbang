@@ -156,9 +156,10 @@ export default function EvaluatePage() {
       // Upload failure shouldn't block submission
     }
 
-    const evaluationData = {
+    // Full data with new columns (v2)
+    const evaluationDataFull = {
       address_street: locationInfo.addressStreet,
-      address_ward: locationInfo.addressWard,
+      address_ward: locationInfo.addressWard || '',
       address_district: locationInfo.addressDistrict,
       address_city: locationInfo.addressCity,
       landlord_name: locationInfo.landlordName || null,
@@ -177,15 +178,46 @@ export default function EvaluatePage() {
       verdict,
     };
 
+    // Fallback data without new columns (for DB that hasn't been migrated)
+    const evaluationDataLegacy = {
+      address_street: locationInfo.addressStreet,
+      address_ward: locationInfo.addressWard || '',
+      address_district: locationInfo.addressDistrict,
+      address_city: locationInfo.addressCity,
+      landlord_name: locationInfo.landlordName || null,
+      landlord_phone: locationInfo.landlordPhone || null,
+      rent_price: locationInfo.rentPrice || null,
+      area_sqm: locationInfo.areaSqm || null,
+      surveyor_name: locationInfo.surveyorName || null,
+      survey_date: locationInfo.surveyDate || null,
+      latitude: locationInfo.latitude || null,
+      longitude: locationInfo.longitude || null,
+      scores,
+      total_score: totalScore,
+      verdict,
+    };
+
     try {
       if (!isSupabaseConfigured) throw new Error('Supabase not configured');
 
-      const { data, error } = await supabase
+      // Try full insert first (with new columns)
+      let insertResult = await supabase
         .from('evaluations')
-        .insert(evaluationData)
+        .insert(evaluationDataFull)
         .select('id')
         .single();
 
+      // If fails (likely missing columns), retry with legacy columns
+      if (insertResult.error) {
+        console.warn('Full insert failed, retrying with legacy columns:', insertResult.error.message);
+        insertResult = await supabase
+          .from('evaluations')
+          .insert(evaluationDataLegacy)
+          .select('id')
+          .single();
+      }
+
+      const { data, error } = insertResult;
       if (error) throw error;
 
       // Save to survey history
@@ -224,7 +256,7 @@ export default function EvaluatePage() {
       const fallbackId = 'local-' + Date.now();
       const evaluation = {
         id: fallbackId,
-        ...evaluationData,
+        ...evaluationDataFull,
         created_at: new Date().toISOString(),
       };
 
