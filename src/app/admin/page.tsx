@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-dark flex items-center justify-center p-4">
+    <main className="min-h-screen bg-bg flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -36,8 +36,8 @@ export default function AdminLoginPage() {
             alt="Phúc Tea"
             className="w-20 h-20 mx-auto object-contain mb-4"
           />
-          <h1 className="text-2xl font-bold text-primary">Phúc Tea</h1>
-          <p className="text-gray-400 text-sm mt-1">Admin Dashboard</p>
+          <h1 className="text-2xl font-bold text-dark">Phúc <span className="text-primary">Tea</span></h1>
+          <p className="text-gray-500 text-sm mt-1">Admin Dashboard</p>
         </div>
 
         <form onSubmit={handleLogin} className="bg-white rounded-2xl p-6 shadow-xl space-y-4">

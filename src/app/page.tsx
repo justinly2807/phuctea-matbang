@@ -6,7 +6,7 @@ import LocationModal from '@/components/LocationModal';
 import { LocationInfo } from '@/types';
 
 export default function Home() {
-  const [showModal, setShowModal] = useState(true);
+  const [showModal, setShowModal] = useState(false);
   const router = useRouter();
 
   const handleSubmit = (info: LocationInfo) => {
@@ -16,7 +16,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-dark flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen bg-bg flex flex-col items-center justify-center p-4">
       <div className="text-center space-y-6 max-w-md mx-auto">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -25,22 +25,22 @@ export default function Home() {
           className="w-32 h-32 mx-auto object-contain drop-shadow-2xl"
         />
         <div>
-          <h1 className="text-3xl font-bold text-primary">Phúc Tea</h1>
-          <p className="text-gray-300 mt-1 text-sm font-medium">Hệ thống đánh giá mặt bằng nhượng quyền</p>
+          <h1 className="text-3xl font-bold text-dark">Phúc <span className="text-primary">Tea</span></h1>
+          <p className="text-gray-500 mt-1 text-sm font-medium">Hệ thống đánh giá mặt bằng nhượng quyền</p>
         </div>
 
         {/* Compelling copy */}
-        <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-5 text-left space-y-3">
-          <p className="text-primary font-bold text-base">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 text-left space-y-3 shadow-sm">
+          <p className="text-dark font-bold text-base">
             🏆 Chọn đúng mặt bằng = Thành công 50%
           </p>
-          <p className="text-gray-400 text-sm leading-relaxed">
-            Một vị trí tốt có thể <span className="text-white font-semibold">tăng mức độ thành công lên 50%</span> và
-            giúp tiết kiệm <span className="text-white font-semibold">hàng trăm triệu đồng</span> chi phí vận hành.
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Một vị trí tốt có thể <span className="text-dark font-semibold">tăng mức độ thành công lên 50%</span> và
+            giúp tiết kiệm <span className="text-dark font-semibold">hàng trăm triệu đồng</span> chi phí vận hành.
             Hệ thống khảo sát 20 tiêu chí của Phúc Tea giúp anh/chị đánh giá mặt bằng một cách khoa học,
             chính xác và chuyên nghiệp.
           </p>
-          <div className="flex items-center gap-4 pt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-4 pt-1 text-xs text-gray-400">
             <span className="flex items-center gap-1">
               <span className="inline-block w-2 h-2 rounded-full bg-success"></span>
               20 tiêu chí đánh giá
