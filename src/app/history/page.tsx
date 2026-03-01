@@ -8,9 +8,9 @@ import { getVerdictLabel, getVerdictColor } from '@/types';
 interface HistoryItem {
   id: string;
   address: string;
-  totalScore: number;
+  total_score: number;
   verdict: 'feasible' | 'potential' | 'risky';
-  date: string;
+  created_at: string;
 }
 
 export default function HistoryPage() {
@@ -92,7 +92,7 @@ export default function HistoryPage() {
                         className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center shadow-sm"
                         style={{ backgroundColor: verdictColor }}
                       >
-                        <span className="text-white text-sm font-black">{item.totalScore}</span>
+                        <span className="text-white text-sm font-black">{item.total_score}</span>
                       </div>
 
                       {/* Info */}
@@ -106,7 +106,7 @@ export default function HistoryPage() {
                             {verdictLabel}
                           </span>
                           <span className="text-xs text-gray-400">
-                            {new Date(item.date).toLocaleDateString('vi-VN')}
+                            {new Date(item.created_at).toLocaleDateString('vi-VN')}
                           </span>
                         </div>
                       </div>
