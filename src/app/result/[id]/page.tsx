@@ -2,14 +2,12 @@
 
 import { useEffect, useState, useRef, use } from 'react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import Header from '@/components/Header';
 import { Evaluation, getVerdictLabel, getVerdictColor, getVerdictDescription, getFullAddress } from '@/types';
 import { CATEGORIES, CRITERIA, getCriteriaByCategory } from '@/lib/criteria';
 import { calculateCategoryScores } from '@/lib/scoring';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-
-const ScoreRadar = dynamic(() => import('@/components/ScoreRadar'), { ssr: false });
+import { analyzeEvaluation } from '@/lib/analyzer';
 
 export default function ResultPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -153,11 +151,86 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
 
-        {/* Radar Chart */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h3 className="font-bold text-dark text-center mb-4">Biểu đồ đánh giá tổng quan</h3>
-          <ScoreRadar categoryScores={categoryScores} />
-        </div>
+        {/* AI Analysis */}
+        {(() => {
+          const analysis = analyzeEvaluation(evaluation.scores);
+          return (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h3 className="font-bold text-dark flex items-center gap-2">
+                  <span className="text-lg">📊</span> Phân tích mặt bằng
+                </h3>
+              </div>
+
+              <div className="p-5 space-y-5">
+                {/* Điểm mạnh */}
+                {analysis.strengths.length > 0 && (
+                  <div>
+                    <h4 className="flex items-center gap-2 font-semibold text-success text-sm mb-3">
+                      <span className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-xs">✅</span>
+                      Điểm mạnh ({analysis.strengths.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {analysis.strengths.map((s, i) => (
+                        <div key={i} className="flex gap-3 bg-green-50 rounded-xl p-3">
+                          <span className="text-success text-sm mt-0.5 flex-shrink-0">●</span>
+                          <div>
+                            <p className="text-sm font-semibold text-dark">{s.name}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{s.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Điểm yếu */}
+                {analysis.weaknesses.length > 0 && (
+                  <div>
+                    <h4 className="flex items-center gap-2 font-semibold text-danger text-sm mb-3">
+                      <span className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center text-xs">⚠️</span>
+                      Điểm yếu cần lưu ý ({analysis.weaknesses.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {analysis.weaknesses.map((w, i) => (
+                        <div key={i} className="flex gap-3 bg-red-50 rounded-xl p-3">
+                          <span className="text-danger text-sm mt-0.5 flex-shrink-0">●</span>
+                          <div>
+                            <p className="text-sm font-semibold text-dark">{w.name}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{w.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Gợi ý cải thiện */}
+                <div>
+                  <h4 className="flex items-center gap-2 font-semibold text-primary-dark text-sm mb-3">
+                    <span className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center text-xs">💡</span>
+                    Gợi ý cải thiện
+                  </h4>
+                  <div className="space-y-2">
+                    {analysis.suggestions.map((s, i) => (
+                      <div key={i} className="flex gap-3 bg-yellow-50 rounded-xl p-3">
+                        <span className="text-primary-dark font-bold text-sm mt-0.5 flex-shrink-0">{i + 1}.</span>
+                        <p className="text-sm text-gray-700">{s}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Không có điểm mạnh hay yếu rõ ràng */}
+                {analysis.strengths.length === 0 && analysis.weaknesses.length === 0 && (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500">Tất cả tiêu chí đều ở mức trung bình. Xem chi tiết bên dưới để đánh giá cụ thể hơn.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Category Scores */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">

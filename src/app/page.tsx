@@ -24,10 +24,7 @@ export default function Home() {
           alt="Phúc Tea Logo"
           className="w-32 h-32 mx-auto object-contain drop-shadow-2xl"
         />
-        <div>
-          <h1 className="text-3xl font-bold text-dark">Phúc <span className="text-primary">Tea</span></h1>
-          <p className="text-gray-500 mt-1 text-sm font-medium">Hệ thống đánh giá mặt bằng nhượng quyền</p>
-        </div>
+        <p className="text-gray-500 text-sm font-medium">Hệ thống đánh giá mặt bằng nhượng quyền</p>
 
         {/* Compelling copy */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 text-left space-y-3 shadow-sm">
