@@ -6,7 +6,9 @@ export interface LocationInfo {
   landlordName?: string;
   landlordPhone?: string;
   rentPrice?: string;
+  rentUnit?: string; // 'month' | 'year'
   areaSqm?: string;
+  competitorNotes?: string;
   surveyorName?: string;
   surveyDate?: string;
   latitude?: number;
@@ -22,6 +24,7 @@ export interface Criterion {
   id: number;
   name: string;
   description: string;
+  hint?: string;
   category: string;
   categoryId: number;
   options: CriterionOption[];
@@ -40,11 +43,14 @@ export interface Evaluation {
   landlord_name: string | null;
   landlord_phone: string | null;
   rent_price: string | null;
+  rent_unit: string | null;
   area_sqm: string | null;
+  competitor_notes: string | null;
   surveyor_name: string | null;
   survey_date: string | null;
   latitude: number | null;
   longitude: number | null;
+  images: string[];
   scores: EvaluationScores;
   total_score: number;
   verdict: 'feasible' | 'potential' | 'risky';

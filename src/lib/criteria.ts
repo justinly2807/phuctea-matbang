@@ -13,6 +13,7 @@ export const CRITERIA: Criterion[] = [
     id: 1,
     name: 'Lưu lượng giao thông',
     description: 'Lượng người và phương tiện qua lại trong ngày',
+    hint: 'Đứng quan sát tại vị trí khoảng 15-30 phút vào giờ cao điểm (7-9h sáng, 11-13h trưa, 17-19h chiều). Đếm số người đi bộ và xe qua lại.',
     category: 'Vị trí & Khả năng tiếp cận',
     categoryId: 1,
     options: [
@@ -27,6 +28,7 @@ export const CRITERIA: Criterion[] = [
     id: 2,
     name: 'Khả năng hiển thị',
     description: 'Mức độ dễ nhìn thấy quán từ xa',
+    hint: 'Đi bộ từ 2 hướng đường chính cách mặt bằng 50-100m. Có nhìn thấy rõ vị trí không? Có bị cây cối, biển hiệu khác che khuất không?',
     category: 'Vị trí & Khả năng tiếp cận',
     categoryId: 1,
     options: [
@@ -41,6 +43,7 @@ export const CRITERIA: Criterion[] = [
     id: 3,
     name: 'Tiện ích xung quanh',
     description: 'Sự hiện diện của các tiện ích phục vụ nhu cầu khách hàng',
+    hint: 'Đi bộ vòng quanh bán kính 200-500m. Ghi nhận: trường học, văn phòng, chợ, siêu thị, bệnh viện, công viên, khu chung cư...',
     category: 'Vị trí & Khả năng tiếp cận',
     categoryId: 1,
     options: [
@@ -55,6 +58,7 @@ export const CRITERIA: Criterion[] = [
     id: 4,
     name: 'Chỗ đậu xe',
     description: 'Khả năng đậu xe cho khách hàng',
+    hint: 'Kiểm tra: có bãi giữ xe riêng không? Vỉa hè có rộng để xe máy không? Có bãi xe công cộng gần đó không? Đường có cấm đậu xe không?',
     category: 'Vị trí & Khả năng tiếp cận',
     categoryId: 1,
     options: [
@@ -69,6 +73,7 @@ export const CRITERIA: Criterion[] = [
     id: 5,
     name: 'Giao thông công cộng',
     description: 'Khả năng tiếp cận bằng phương tiện công cộng',
+    hint: 'Tìm trạm xe buýt, ga metro gần nhất trên Google Maps. Trong bán kính 300m có trạm nào không? Có bao nhiêu tuyến đi qua?',
     category: 'Vị trí & Khả năng tiếp cận',
     categoryId: 1,
     options: [
@@ -85,6 +90,7 @@ export const CRITERIA: Criterion[] = [
     id: 6,
     name: 'Diện tích',
     description: 'Phù hợp với mô hình kinh doanh',
+    hint: 'Phúc Tea cần tối thiểu 30m² cho mô hình take-away, 50-80m² cho quán ngồi. Đo hoặc ước lượng diện tích thực tế sử dụng được.',
     category: 'Mặt bằng & Không gian',
     categoryId: 2,
     options: [
@@ -99,6 +105,7 @@ export const CRITERIA: Criterion[] = [
     id: 7,
     name: 'Hình dạng mặt bằng',
     description: 'Dễ dàng bố trí không gian kinh doanh',
+    hint: 'Quan sát hình dạng: vuông hay dài hẹp? Có cột giữa, bậc thang, góc chết không? Tưởng tượng bố trí quầy bar, bàn ghế, kho.',
     category: 'Mặt bằng & Không gian',
     categoryId: 2,
     options: [
@@ -113,6 +120,7 @@ export const CRITERIA: Criterion[] = [
     id: 8,
     name: 'Mặt tiền',
     description: 'Độ rộng và khả năng thu hút của mặt tiền',
+    hint: 'Đo bề ngang mặt tiền (mét). Dưới 3m là hẹp, 4-6m là tốt, trên 6m là rộng. Có thể đặt bảng hiệu lớn, trang trí nổi bật không?',
     category: 'Mặt bằng & Không gian',
     categoryId: 2,
     options: [
@@ -127,6 +135,7 @@ export const CRITERIA: Criterion[] = [
     id: 9,
     name: 'Kết cấu & Tiện ích',
     description: 'Chất lượng kết cấu và tiện nghi sẵn có',
+    hint: 'Kiểm tra: tường có nứt không? Trần có dột không? Hệ thống điện (đủ công suất cho máy xay, tủ lạnh?), nước, thoát nước, WC.',
     category: 'Mặt bằng & Không gian',
     categoryId: 2,
     options: [
@@ -141,6 +150,7 @@ export const CRITERIA: Criterion[] = [
     id: 10,
     name: 'Ánh sáng & Thông gió',
     description: 'Điều kiện ánh sáng và không khí',
+    hint: 'Vào bên trong mặt bằng lúc ban ngày. Có ánh sáng tự nhiên không? Có cửa sổ, giếng trời? Không gian có bí, nóng, ẩm không?',
     category: 'Mặt bằng & Không gian',
     categoryId: 2,
     options: [
@@ -157,6 +167,7 @@ export const CRITERIA: Criterion[] = [
     id: 11,
     name: 'An ninh trật tự',
     description: 'Mức độ an toàn của khu vực',
+    hint: 'Hỏi người dân xung quanh về tình hình an ninh. Quan sát: có camera an ninh khu vực không? Ban đêm có đèn đường không? Có tụ điểm phức tạp gần đó không?',
     category: 'Môi trường & Pháp lý',
     categoryId: 3,
     options: [
@@ -171,6 +182,7 @@ export const CRITERIA: Criterion[] = [
     id: 12,
     name: 'Vệ sinh môi trường',
     description: 'Điều kiện vệ sinh xung quanh',
+    hint: 'Quan sát: có rác thải, nước đọng, mùi hôi xung quanh không? Hệ thống thoát nước có tốt không? Khu vực có bị ngập khi mưa không?',
     category: 'Môi trường & Pháp lý',
     categoryId: 3,
     options: [
@@ -185,6 +197,7 @@ export const CRITERIA: Criterion[] = [
     id: 13,
     name: 'Cảnh quan xung quanh',
     description: 'Vẻ đẹp và cảnh quan khu vực',
+    hint: 'Chụp ảnh cảnh quan xung quanh mặt bằng 360 độ. Có cây xanh, công viên không? Các công trình lân cận có đẹp, sạch sẽ không?',
     category: 'Môi trường & Pháp lý',
     categoryId: 3,
     options: [
@@ -199,6 +212,7 @@ export const CRITERIA: Criterion[] = [
     id: 14,
     name: 'Giấy tờ pháp lý',
     description: 'Tình trạng giấy tờ pháp lý của mặt bằng',
+    hint: 'Hỏi chủ nhà: có sổ đỏ/sổ hồng không? Giấy phép kinh doanh có được cấp cho loại hình F&B không? Có tranh chấp pháp lý nào không?',
     category: 'Môi trường & Pháp lý',
     categoryId: 3,
     options: [
@@ -213,6 +227,7 @@ export const CRITERIA: Criterion[] = [
     id: 15,
     name: 'Chủ sở hữu',
     description: 'Mức độ uy tín và thiện chí của chủ nhà',
+    hint: 'Đánh giá qua buổi gặp: chủ nhà có nhiệt tình không? Có lịch sử cho thuê tốt không? Có yêu cầu bất hợp lý không? Hỏi người thuê trước (nếu có).',
     category: 'Môi trường & Pháp lý',
     categoryId: 3,
     options: [
@@ -229,6 +244,7 @@ export const CRITERIA: Criterion[] = [
     id: 16,
     name: 'Giá thuê mặt bằng',
     description: 'Mức giá thuê so với thị trường',
+    hint: 'So sánh giá thuê với các mặt bằng tương tự trong khu vực. Giá thuê nên chiếm không quá 15-20% doanh thu dự kiến hàng tháng.',
     category: 'Tiềm năng & Chi phí',
     categoryId: 4,
     options: [
@@ -243,6 +259,7 @@ export const CRITERIA: Criterion[] = [
     id: 17,
     name: 'Tiềm năng phát triển',
     description: 'Khả năng phát triển của khu vực trong tương lai',
+    hint: 'Quan sát: có công trình đang xây dựng không? Có bảng quy hoạch, dự án hạ tầng mới? Khu vực dân cư có đang mở rộng không?',
     category: 'Tiềm năng & Chi phí',
     categoryId: 4,
     options: [
@@ -257,6 +274,7 @@ export const CRITERIA: Criterion[] = [
     id: 18,
     name: 'Khả năng cạnh tranh',
     description: 'Mức độ cạnh tranh trong khu vực',
+    hint: 'Đi bộ trong bán kính 500m, đếm số quán trà sữa, cà phê, nước uống. Ghi lại tên và khoảng cách. Dùng phần ghi chú đối thủ ở trang trước.',
     category: 'Tiềm năng & Chi phí',
     categoryId: 4,
     options: [
@@ -271,6 +289,7 @@ export const CRITERIA: Criterion[] = [
     id: 19,
     name: 'Điều khoản hợp đồng',
     description: 'Mức độ thuận lợi của hợp đồng thuê',
+    hint: 'Xem xét: thời hạn thuê (tối thiểu 3 năm), điều kiện tăng giá, tiền cọc, quyền chuyển nhượng, điều kiện chấm dứt hợp đồng.',
     category: 'Tiềm năng & Chi phí',
     categoryId: 4,
     options: [
@@ -285,6 +304,7 @@ export const CRITERIA: Criterion[] = [
     id: 20,
     name: 'Linh hoạt kinh doanh',
     description: 'Khả năng thay đổi, cải tạo mặt bằng',
+    hint: 'Hỏi chủ nhà: có cho phép đập tường, sơn lại, lắp bảng hiệu ngoài trời, sửa đổi mặt tiền không? Có giới hạn giờ kinh doanh không?',
     category: 'Tiềm năng & Chi phí',
     categoryId: 4,
     options: [

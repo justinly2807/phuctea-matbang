@@ -34,19 +34,72 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
     landlordName: '',
     landlordPhone: '',
     rentPrice: '',
+    rentUnit: 'month',
     areaSqm: '',
+    competitorNotes: '',
     surveyorName: '',
     surveyDate: new Date().toISOString().split('T')[0],
   });
 
   const [showOptional, setShowOptional] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [gpsLoading, setGpsLoading] = useState(false);
 
   const updateField = (field: keyof LocationInfo, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: false }));
     }
+  };
+
+  const handleGPS = () => {
+    if (!navigator.geolocation) {
+      alert('Trình duyệt không hỗ trợ GPS');
+      return;
+    }
+
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setForm((prev) => ({ ...prev, latitude, longitude }));
+
+        // Reverse geocode with Nominatim
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=vi`
+          );
+          const data = await res.json();
+          if (data.address) {
+            const addr = data.address;
+            const district = addr.city_district || addr.suburb || addr.county || '';
+            const city = addr.city || addr.state || '';
+            if (district && !form.addressDistrict) {
+              setForm((prev) => ({ ...prev, addressDistrict: district }));
+            }
+            if (city && !form.addressCity) {
+              // Try to match with province list
+              const matched = PROVINCES.find(
+                (p) => city.includes(p) || p.includes(city)
+              );
+              if (matched) {
+                setForm((prev) => ({ ...prev, addressCity: matched }));
+              }
+            }
+          }
+        } catch {
+          // Reverse geocode failure is OK
+        }
+
+        setGpsLoading(false);
+      },
+      (err) => {
+        console.error('GPS error:', err);
+        alert('Không thể lấy vị trí. Vui lòng cho phép truy cập GPS.');
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleSubmit = () => {
@@ -96,6 +149,26 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
             <span className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-dark">1</span>
             Địa chỉ mặt bằng <span className="text-danger text-xs">*Bắt buộc</span>
           </h3>
+
+          {/* GPS Button */}
+          <button
+            type="button"
+            onClick={handleGPS}
+            disabled={gpsLoading}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-primary/50 text-primary-dark text-sm font-medium hover:bg-primary/5 transition disabled:opacity-50"
+          >
+            {gpsLoading ? (
+              <>
+                <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                Đang lấy vị trí...
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Lấy vị trí hiện tại (GPS)
+              </>
+            )}
+          </button>
 
           <div className="space-y-3">
             <div>
@@ -186,26 +259,36 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                 onChange={(e) => updateField('landlordPhone', e.target.value.replace(/\D/g, ''))}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
               />
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Giá thuê (VNĐ/tháng)"
-                  value={form.rentPrice ? formatNumber(form.rentPrice) : ''}
-                  onChange={(e) => updateField('rentPrice', e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-                />
-                <div className="relative">
+              <div className="flex gap-3">
+                <div className="flex-1">
                   <input
                     type="text"
                     inputMode="numeric"
-                    placeholder="Diện tích"
-                    value={form.areaSqm}
-                    onChange={(e) => updateField('areaSqm', e.target.value.replace(/[^\d.]/g, ''))}
-                    className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+                    placeholder="Giá thuê (VNĐ)"
+                    value={form.rentPrice ? formatNumber(form.rentPrice) : ''}
+                    onChange={(e) => updateField('rentPrice', e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
                   />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium pointer-events-none">m²</span>
                 </div>
+                <select
+                  value={form.rentUnit || 'month'}
+                  onChange={(e) => updateField('rentUnit', e.target.value)}
+                  className="px-3 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm text-gray-700 bg-gray-50"
+                >
+                  <option value="month">/tháng</option>
+                  <option value="year">/năm</option>
+                </select>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Diện tích"
+                  value={form.areaSqm}
+                  onChange={(e) => updateField('areaSqm', e.target.value.replace(/[^\d.]/g, ''))}
+                  className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium pointer-events-none">m²</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <input
@@ -220,6 +303,18 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                   value={form.surveyDate}
                   onChange={(e) => updateField('surveyDate', e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+                />
+              </div>
+
+              {/* Competitor Notes */}
+              <div>
+                <label className="text-xs font-medium text-gray-500 mb-1 block">Ghi chú đối thủ cạnh tranh</label>
+                <textarea
+                  placeholder="VD: Có quán Gong Cha cách 50m, Highland Coffee đối diện, khu vực có 3 quán trà sữa khác..."
+                  value={form.competitorNotes || ''}
+                  onChange={(e) => updateField('competitorNotes', e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm resize-none"
                 />
               </div>
             </div>

@@ -1,13 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LocationModal from '@/components/LocationModal';
 import { LocationInfo } from '@/types';
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
+  const [historyCount, setHistoryCount] = useState(0);
   const router = useRouter();
+
+  useEffect(() => {
+    const history = JSON.parse(localStorage.getItem('survey_history') || '[]');
+    setHistoryCount(history.length);
+  }, []);
 
   const handleSubmit = (info: LocationInfo) => {
     sessionStorage.setItem('locationInfo', JSON.stringify(info));
@@ -48,7 +54,7 @@ export default function Home() {
             </span>
             <span className="flex items-center gap-1">
               <span className="inline-block w-2 h-2 rounded-full bg-info"></span>
-              Xuất PDF
+              Chia sẻ kết quả
             </span>
           </div>
         </div>
@@ -58,6 +64,22 @@ export default function Home() {
           className="w-full bg-primary hover:bg-primary-dark text-dark font-bold px-8 py-4 rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] text-base"
         >
           🚀 Bắt đầu khảo sát ngay
+        </button>
+
+        {/* History link */}
+        <button
+          onClick={() => router.push('/history')}
+          className="w-full flex items-center justify-center gap-2 py-3 text-sm text-gray-500 hover:text-dark transition"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Lịch sử khảo sát
+          {historyCount > 0 && (
+            <span className="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">
+              {historyCount}
+            </span>
+          )}
         </button>
       </div>
 

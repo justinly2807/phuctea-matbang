@@ -1,21 +1,27 @@
 'use client';
 
-import { useEffect, useState, useRef, use } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import { Evaluation, getVerdictLabel, getVerdictColor, getVerdictDescription, getFullAddress } from '@/types';
-import { CATEGORIES, CRITERIA, getCriteriaByCategory } from '@/lib/criteria';
+import { CATEGORIES, getCriteriaByCategory } from '@/lib/criteria';
 import { calculateCategoryScores } from '@/lib/scoring';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { analyzeEvaluation } from '@/lib/analyzer';
+
+// Format number with dots: 9000000 → 9.000.000
+function formatNumber(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
 
 export default function ResultPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const [shared, setShared] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchEvaluation() {
@@ -55,45 +61,40 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
     fetchEvaluation();
   }, [id]);
 
-  const handleExportPDF = async () => {
-    if (!resultRef.current || !evaluation) return;
-    setExporting(true);
+  const handleShare = async () => {
+    const url = window.location.href;
+    const title = evaluation
+      ? `Phúc Tea - Khảo sát ${evaluation.address_district}, ${evaluation.address_city}`
+      : 'Phúc Tea - Kết quả khảo sát';
+    const text = evaluation
+      ? `Kết quả khảo sát mặt bằng: ${evaluation.total_score}/100 - ${getVerdictLabel(evaluation.verdict)}`
+      : 'Xem kết quả khảo sát mặt bằng';
 
-    try {
-      const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
-
-      const canvas = await html2canvas(resultRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      let heightLeft = pdfHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-
-      while (heightLeft > 0) {
-        position = -(pdfHeight - heightLeft);
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
+    // Try Web Share API on mobile
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch {
+        // User cancelled or not supported - fallback to clipboard
       }
+    }
 
-      const fileName = `PhucTea_KhaoSat_${evaluation.address_district}_${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
-    } catch (err) {
-      console.error('PDF export error:', err);
-      alert('Có lỗi khi xuất PDF. Vui lòng thử lại.');
-    } finally {
-      setExporting(false);
+    // Fallback: copy to clipboard
+    try {
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      setTimeout(() => setShared(false), 2500);
+    } catch {
+      // Very old browser fallback
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      setShared(true);
+      setTimeout(() => setShared(false), 2500);
     }
   };
 
@@ -125,12 +126,13 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
   const categoryScores = calculateCategoryScores(evaluation.scores);
   const verdictColor = getVerdictColor(evaluation.verdict);
   const verdictLabel = getVerdictLabel(evaluation.verdict);
+  const images = evaluation.images || [];
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg pb-24">
       <Header />
 
-      <div ref={resultRef} className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Score Hero */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-6 text-center" style={{ background: `linear-gradient(135deg, ${verdictColor}15, ${verdictColor}05)` }}>
@@ -303,6 +305,47 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           })}
         </div>
 
+        {/* Media Gallery */}
+        {images.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-dark flex items-center gap-2">
+                <span className="text-lg">📸</span> Hình ảnh mặt bằng ({images.length})
+              </h3>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {images.map((url, i) => {
+                  const isVideo = /\.(mp4|mov|avi|webm)$/i.test(url);
+                  return isVideo ? (
+                    <div key={i} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
+                      <video
+                        src={url}
+                        controls
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      key={i}
+                      onClick={() => setLightboxImg(url)}
+                      className="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={url}
+                        alt={`Hình ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Location Info */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
           <h3 className="font-bold text-dark">Thông tin mặt bằng</h3>
@@ -310,11 +353,26 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             <InfoRow label="Địa chỉ" value={getFullAddress(evaluation)} />
             {evaluation.landlord_name && <InfoRow label="Chủ nhà" value={evaluation.landlord_name} />}
             {evaluation.landlord_phone && <InfoRow label="SĐT chủ nhà" value={evaluation.landlord_phone} />}
-            {evaluation.rent_price && <InfoRow label="Giá thuê" value={evaluation.rent_price} />}
+            {evaluation.rent_price && (
+              <InfoRow
+                label="Giá thuê"
+                value={`${formatNumber(evaluation.rent_price)} VNĐ/${evaluation.rent_unit === 'year' ? 'năm' : 'tháng'}`}
+              />
+            )}
             {evaluation.area_sqm && <InfoRow label="Diện tích" value={`${evaluation.area_sqm} m²`} />}
             {evaluation.surveyor_name && <InfoRow label="Người khảo sát" value={evaluation.surveyor_name} />}
             {evaluation.survey_date && <InfoRow label="Ngày khảo sát" value={new Date(evaluation.survey_date).toLocaleDateString('vi-VN')} />}
           </div>
+
+          {/* Competitor Notes */}
+          {evaluation.competitor_notes && (
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 mb-1.5">Ghi chú đối thủ cạnh tranh</p>
+              <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">
+                {evaluation.competitor_notes}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Phúc Tea footer */}
@@ -329,19 +387,18 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 no-print">
         <div className="max-w-4xl mx-auto flex gap-3">
           <button
-            onClick={handleExportPDF}
-            disabled={exporting}
+            onClick={handleShare}
             className="flex-1 bg-dark text-white font-bold py-3.5 rounded-xl transition-all hover:bg-dark-light flex items-center justify-center gap-2"
           >
-            {exporting ? (
+            {shared ? (
               <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Đang xuất...
+                <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                Đã sao chép link!
               </>
             ) : (
               <>
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Xuất PDF
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                Chia sẻ kết quả
               </>
             )}
           </button>
@@ -353,6 +410,28 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           </button>
         </div>
       </div>
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4"
+          onClick={() => setLightboxImg(null)}
+        >
+          <button
+            onClick={() => setLightboxImg(null)}
+            className="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white text-xl hover:bg-white/30 transition"
+          >
+            ✕
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={lightboxImg}
+            alt="Preview"
+            className="max-w-full max-h-[90vh] object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

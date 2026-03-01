@@ -37,6 +37,9 @@ export default function CriteriaCard({ criterion, selectedScore, onSelect, index
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-dark text-sm leading-tight">{criterion.name}</h3>
             <p className="text-xs text-gray-400 mt-0.5">{criterion.description}</p>
+            {criterion.hint && (
+              <p className="text-[11px] text-gray-400 mt-1 italic leading-relaxed">{criterion.hint}</p>
+            )}
           </div>
           {selectedScore && (
             <span className="flex-shrink-0 text-sm font-bold text-primary">{selectedScore}/5</span>
