@@ -11,7 +11,13 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Khảo Sát Mặt Bằng | Phúc Tea",
   description: "Công cụ đánh giá và khảo sát mặt bằng nhượng quyền Phúc Tea",
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: [
+      { url: "/favicon.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
