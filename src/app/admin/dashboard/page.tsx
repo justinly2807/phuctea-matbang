@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [migrationNeeded, setMigrationNeeded] = useState(false);
 
   useEffect(() => {
     const auth = localStorage.getItem('admin_auth');
@@ -31,7 +32,23 @@ export default function DashboardPage() {
       return;
     }
     fetchEvaluations();
+    checkMigration();
   }, [router]);
+
+  async function checkMigration() {
+    if (!isSupabaseConfigured) return;
+    try {
+      const { error } = await supabase
+        .from('evaluations')
+        .select('images,competitor_notes,rent_unit')
+        .limit(1);
+      if (error && error.message.includes('does not exist')) {
+        setMigrationNeeded(true);
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   async function fetchEvaluations() {
     // Try Supabase first, fallback to localStorage
@@ -119,6 +136,26 @@ export default function DashboardPage() {
       </header>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Migration Banner */}
+        {migrationNeeded && (
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-4 border-2 border-orange-200 flex items-center gap-3">
+            <span className="text-2xl flex-shrink-0">⚠️</span>
+            <div className="flex-1">
+              <p className="font-bold text-orange-700 text-sm">Database cần cập nhật</p>
+              <p className="text-xs text-orange-600 mt-0.5">
+                Các cột mới (hình ảnh, ghi chú đối thủ, đơn vị giá thuê) chưa được thêm vào database.
+                Kết quả khảo sát mới sẽ thiếu dữ liệu cho đến khi chạy migration.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/admin/migrate')}
+              className="flex-shrink-0 bg-orange-500 text-white font-bold text-xs px-4 py-2 rounded-xl hover:bg-orange-600 transition"
+            >
+              Cấu hình ngay →
+            </button>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           <StatCard label="Tổng khảo sát" value={stats.total} color="#1C1C1C" />
