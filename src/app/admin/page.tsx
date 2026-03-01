@@ -32,9 +32,9 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="https://lh3.googleusercontent.com/sitesv/APaQ0STQDCdu2oy81vSK9v1heOEhSx4gEdzdb71Ig8Te1PHvhnzFaMiBhSFkPZRD4tPrKD3AVZXaGPg55-R2GNBUtUW7A0Ax6LcS4iI0TJhEh9mpbWK5hysXs5iFacHDkLSt35ygtEkIqV8-oigJyd0DVIiUVEzvE6x3r3n9W7qJlox2DAKSdUo905-iaYgyG85fAhCdZ_5vT3PZvWjhR7Q4IrNnBEBB8SLBXFfR=w1280"
+            src="/logo.png"
             alt="Phúc Tea"
-            className="w-20 h-20 mx-auto rounded-full object-cover bg-primary shadow-xl shadow-primary/30 mb-4"
+            className="w-20 h-20 mx-auto object-contain mb-4"
           />
           <h1 className="text-2xl font-bold text-primary">Phúc Tea</h1>
           <p className="text-gray-400 text-sm mt-1">Admin Dashboard</p>
