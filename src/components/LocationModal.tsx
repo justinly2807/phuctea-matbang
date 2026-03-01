@@ -41,7 +41,6 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
     surveyDate: new Date().toISOString().split('T')[0],
   });
 
-  const [showOptional, setShowOptional] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [gpsLoading, setGpsLoading] = useState(false);
 
@@ -78,7 +77,6 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
               setForm((prev) => ({ ...prev, addressDistrict: district }));
             }
             if (city && !form.addressCity) {
-              // Try to match with province list
               const matched = PROVINCES.find(
                 (p) => city.includes(p) || p.includes(city)
               );
@@ -105,12 +103,13 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
   const handleSubmit = () => {
     const newErrors: Record<string, boolean> = {};
     if (!form.addressStreet.trim()) newErrors.addressStreet = true;
-    if (!form.addressWard.trim()) newErrors.addressWard = true;
     if (!form.addressDistrict.trim()) newErrors.addressDistrict = true;
     if (!form.addressCity.trim()) newErrors.addressCity = true;
+    if (!(form.surveyorName || '').trim()) newErrors.surveyorName = true;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      // Scroll to first error
       return;
     }
 
@@ -145,6 +144,8 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
 
         {/* Form */}
         <div className="p-5 space-y-4">
+
+          {/* === Section 1: Địa chỉ === */}
           <h3 className="font-semibold text-dark flex items-center gap-2">
             <span className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-dark">1</span>
             Địa chỉ mặt bằng <span className="text-danger text-xs">*Bắt buộc</span>
@@ -181,16 +182,13 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
               />
               {errors.addressStreet && <p className="text-danger text-xs mt-1">Vui lòng nhập số nhà, tên đường</p>}
             </div>
-            <div>
-              <input
-                type="text"
-                placeholder="Phường / Xã *"
-                value={form.addressWard}
-                onChange={(e) => updateField('addressWard', e.target.value)}
-                className={`w-full px-4 py-3 rounded-xl border ${errors.addressWard ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm`}
-              />
-              {errors.addressWard && <p className="text-danger text-xs mt-1">Vui lòng nhập phường/xã</p>}
-            </div>
+            <input
+              type="text"
+              placeholder="Phường / Xã (không bắt buộc)"
+              value={form.addressWard}
+              onChange={(e) => updateField('addressWard', e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+            />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <input
@@ -228,97 +226,93 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
             }}
           />
 
-          {/* Optional Fields Toggle */}
-          <button
-            type="button"
-            onClick={() => setShowOptional(!showOptional)}
-            className="w-full flex items-center justify-between py-3 text-sm text-gray-500 hover:text-dark transition"
-          >
-            <span className="flex items-center gap-2">
-              <span className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">2</span>
-              Thông tin bổ sung (tùy chọn)
-            </span>
-            <svg className={`w-5 h-5 transition-transform ${showOptional ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+          {/* === Section 2: Người khảo sát (bắt buộc) === */}
+          <h3 className="font-semibold text-dark flex items-center gap-2 pt-2">
+            <span className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-dark">2</span>
+            Người khảo sát <span className="text-danger text-xs">*Bắt buộc</span>
+          </h3>
+          <div>
+            <input
+              type="text"
+              placeholder="Họ và tên người khảo sát *"
+              value={form.surveyorName}
+              onChange={(e) => updateField('surveyorName', e.target.value)}
+              className={`w-full px-4 py-3 rounded-xl border ${errors.surveyorName ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm`}
+            />
+            {errors.surveyorName && <p className="text-danger text-xs mt-1">Vui lòng nhập tên người khảo sát</p>}
+          </div>
 
-          {showOptional && (
-            <div className="space-y-3 animate-in slide-in-from-top-2">
-              <input
-                type="text"
-                placeholder="Tên chủ nhà"
-                value={form.landlordName}
-                onChange={(e) => updateField('landlordName', e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-              />
-              <input
-                type="tel"
-                placeholder="SĐT chủ nhà (VD: 0901 234 567)"
-                value={formatPhone(form.landlordPhone || '')}
-                onChange={(e) => updateField('landlordPhone', e.target.value.replace(/\D/g, ''))}
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-              />
-              <div className="flex gap-3">
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Giá thuê (VNĐ)"
-                    value={form.rentPrice ? formatNumber(form.rentPrice) : ''}
-                    onChange={(e) => updateField('rentPrice', e.target.value.replace(/\D/g, ''))}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-                  />
-                </div>
-                <select
-                  value={form.rentUnit || 'month'}
-                  onChange={(e) => updateField('rentUnit', e.target.value)}
-                  className="px-3 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm text-gray-700 bg-gray-50"
-                >
-                  <option value="month">/tháng</option>
-                  <option value="year">/năm</option>
-                </select>
-              </div>
-              <div className="relative">
+          {/* === Section 3: Thông tin bổ sung (luôn hiện, tùy chọn) === */}
+          <h3 className="font-semibold text-dark flex items-center gap-2 pt-2">
+            <span className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">3</span>
+            Thông tin bổ sung <span className="text-xs text-gray-400 font-normal">(tùy chọn)</span>
+          </h3>
+
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Tên chủ nhà"
+              value={form.landlordName}
+              onChange={(e) => updateField('landlordName', e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+            />
+            <input
+              type="tel"
+              placeholder="SĐT chủ nhà (VD: 0901 234 567)"
+              value={formatPhone(form.landlordPhone || '')}
+              onChange={(e) => updateField('landlordPhone', e.target.value.replace(/\D/g, ''))}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+            />
+            <div className="flex gap-3">
+              <div className="flex-1">
                 <input
                   type="text"
                   inputMode="numeric"
-                  placeholder="Diện tích"
-                  value={form.areaSqm}
-                  onChange={(e) => updateField('areaSqm', e.target.value.replace(/[^\d.]/g, ''))}
-                  className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium pointer-events-none">m²</span>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  placeholder="Người khảo sát"
-                  value={form.surveyorName}
-                  onChange={(e) => updateField('surveyorName', e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
-                />
-                <input
-                  type="date"
-                  value={form.surveyDate}
-                  onChange={(e) => updateField('surveyDate', e.target.value)}
+                  placeholder="Giá thuê (VNĐ)"
+                  value={form.rentPrice ? formatNumber(form.rentPrice) : ''}
+                  onChange={(e) => updateField('rentPrice', e.target.value.replace(/\D/g, ''))}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
                 />
               </div>
-
-              {/* Competitor Notes */}
-              <div>
-                <label className="text-xs font-medium text-gray-500 mb-1 block">Ghi chú đối thủ cạnh tranh</label>
-                <textarea
-                  placeholder="VD: Có quán Gong Cha cách 50m, Highland Coffee đối diện, khu vực có 3 quán trà sữa khác..."
-                  value={form.competitorNotes || ''}
-                  onChange={(e) => updateField('competitorNotes', e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm resize-none"
-                />
-              </div>
+              <select
+                value={form.rentUnit || 'month'}
+                onChange={(e) => updateField('rentUnit', e.target.value)}
+                className="px-3 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm text-gray-700 bg-gray-50"
+              >
+                <option value="month">/tháng</option>
+                <option value="year">/năm</option>
+              </select>
             </div>
-          )}
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="Diện tích"
+                value={form.areaSqm}
+                onChange={(e) => updateField('areaSqm', e.target.value.replace(/[^\d.]/g, ''))}
+                className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 font-medium pointer-events-none">m²</span>
+            </div>
+            <input
+              type="date"
+              value={form.surveyDate}
+              onChange={(e) => updateField('surveyDate', e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
+            />
+
+            {/* Competitor Notes */}
+            <div>
+              <label className="text-xs font-medium text-gray-500 mb-1 block">Ghi chú đối thủ cạnh tranh</label>
+              <textarea
+                placeholder="VD: Có quán Gong Cha cách 50m, Highland Coffee đối diện, khu vực có 3 quán trà sữa khác..."
+                value={form.competitorNotes || ''}
+                onChange={(e) => updateField('competitorNotes', e.target.value)}
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm resize-none"
+              />
+            </div>
+          </div>
 
           {/* Submit */}
           <button
