@@ -17,22 +17,50 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-dark flex flex-col items-center justify-center p-4">
-      <div className="text-center space-y-6">
+      <div className="text-center space-y-6 max-w-md mx-auto">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="https://lh3.googleusercontent.com/sitesv/APaQ0STQDCdu2oy81vSK9v1heOEhSx4gEdzdb71Ig8Te1PHvhnzFaMiBhSFkPZRD4tPrKD3AVZXaGPg55-R2GNBUtUW7A0Ax6LcS4iI0TJhEh9mpbWK5hysXs5iFacHDkLSt35ygtEkIqV8-oigJyd0DVIiUVEzvE6x3r3n9W7qJlox2DAKSdUo905-iaYgyG85fAhCdZ_5vT3PZvWjhR7Q4IrNnBEBB8SLBXFfR=w1280"
+          src="/logo.png"
           alt="Phúc Tea Logo"
-          className="w-24 h-24 mx-auto rounded-full object-cover bg-primary shadow-xl shadow-primary/30"
+          className="w-32 h-32 mx-auto object-contain drop-shadow-2xl"
         />
         <div>
           <h1 className="text-3xl font-bold text-primary">Phúc Tea</h1>
-          <p className="text-gray-400 mt-2 text-sm">Hệ thống đánh giá mặt bằng nhượng quyền</p>
+          <p className="text-gray-300 mt-1 text-sm font-medium">Hệ thống đánh giá mặt bằng nhượng quyền</p>
         </div>
+
+        {/* Compelling copy */}
+        <div className="bg-white/5 backdrop-blur border border-white/10 rounded-2xl p-5 text-left space-y-3">
+          <p className="text-primary font-bold text-base">
+            🏆 Chọn đúng mặt bằng = Thành công 50%
+          </p>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Một vị trí tốt có thể <span className="text-white font-semibold">tăng mức độ thành công lên 50%</span> và
+            giúp tiết kiệm <span className="text-white font-semibold">hàng trăm triệu đồng</span> chi phí vận hành.
+            Hệ thống khảo sát 20 tiêu chí của Phúc Tea giúp anh/chị đánh giá mặt bằng một cách khoa học,
+            chính xác và chuyên nghiệp.
+          </p>
+          <div className="flex items-center gap-4 pt-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-success"></span>
+              20 tiêu chí đánh giá
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-primary"></span>
+              Kết quả tức thì
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-info"></span>
+              Xuất PDF
+            </span>
+          </div>
+        </div>
+
         <button
           onClick={() => setShowModal(true)}
-          className="bg-primary hover:bg-primary-dark text-dark font-bold px-8 py-4 rounded-xl transition-all shadow-lg hover:shadow-xl text-base"
+          className="w-full bg-primary hover:bg-primary-dark text-dark font-bold px-8 py-4 rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] text-base"
         >
-          Bắt đầu khảo sát
+          🚀 Bắt đầu khảo sát ngay
         </button>
       </div>
 
