@@ -6,7 +6,7 @@ import Header from '@/components/Header';
 import { Evaluation, getVerdictLabel, getVerdictColor, getVerdictDescription, getFullAddress } from '@/types';
 import { CATEGORIES } from '@/lib/criteria';
 import { calculateCategoryScores } from '@/lib/scoring';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, TABLE_EVALUATIONS } from '@/lib/supabase';
 import { analyzeEvaluation } from '@/lib/analyzer';
 import { CRITERIA } from '@/lib/criteria';
 
@@ -55,7 +55,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
       // Fetch from Supabase if configured
       if (isSupabaseConfigured) {
         const { data, error } = await supabase
-          .from('evaluations')
+          .from(TABLE_EVALUATIONS)
           .select('*')
           .eq('id', id)
           .single();

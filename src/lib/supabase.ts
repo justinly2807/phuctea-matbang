@@ -11,3 +11,6 @@ export const supabase: SupabaseClient = isConfigured
   : createClient('https://placeholder.supabase.co', 'placeholder');
 
 export const isSupabaseConfigured = isConfigured;
+
+// Table name for this app (separate from other apps sharing same Supabase project)
+export const TABLE_EVALUATIONS = 'phuctea_evaluations';

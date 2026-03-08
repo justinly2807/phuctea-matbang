@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Evaluation, getVerdictLabel, getVerdictColor, getFullAddress, VerdictType } from '@/types';
 import { calculateCategoryScores } from '@/lib/scoring';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, TABLE_EVALUATIONS } from '@/lib/supabase';
 
 const ScoreRadar = dynamic(() => import('@/components/ScoreRadar'), { ssr: false });
 
@@ -41,7 +41,7 @@ export default function DashboardPage() {
     if (!isSupabaseConfigured) return;
     try {
       const { error } = await supabase
-        .from('evaluations')
+        .from(TABLE_EVALUATIONS)
         .select('images,competitor_notes,rent_unit')
         .limit(1);
       if (error && error.message.includes('does not exist')) {
@@ -57,7 +57,7 @@ export default function DashboardPage() {
     if (isSupabaseConfigured) {
       try {
         const { data, error } = await supabase
-          .from('evaluations')
+          .from(TABLE_EVALUATIONS)
           .select('*')
           .order('created_at', { ascending: false });
 
@@ -133,7 +133,7 @@ export default function DashboardPage() {
       // Delete from Supabase database
       if (isSupabaseConfigured) {
         const { error } = await supabase
-          .from('evaluations')
+          .from(TABLE_EVALUATIONS)
           .delete()
           .in('id', selected);
 

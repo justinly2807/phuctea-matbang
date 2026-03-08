@@ -6,7 +6,7 @@ import Header from '@/components/Header';
 import CriteriaCard from '@/components/CriteriaCard';
 import { CATEGORIES, getCriteriaByCategory } from '@/lib/criteria';
 import { LocationInfo, EvaluationScores, getVerdict } from '@/types';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, TABLE_EVALUATIONS } from '@/lib/supabase';
 
 const STEP_LABELS = [
   ...CATEGORIES.map((c) => ({ icon: c.icon, name: c.name })),
@@ -252,7 +252,7 @@ export default function EvaluatePage() {
 
       // Try full insert first (with new columns)
       let insertResult = await supabase
-        .from('evaluations')
+        .from(TABLE_EVALUATIONS)
         .insert(evaluationDataFull)
         .select('id')
         .single();
@@ -261,7 +261,7 @@ export default function EvaluatePage() {
       if (insertResult.error) {
         console.warn('Full insert failed, retrying with legacy columns:', insertResult.error.message);
         insertResult = await supabase
-          .from('evaluations')
+          .from(TABLE_EVALUATIONS)
           .insert(evaluationDataLegacy)
           .select('id')
           .single();

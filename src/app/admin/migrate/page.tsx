@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured, TABLE_EVALUATIONS } from '@/lib/supabase';
 
 const MIGRATION_SQL = `-- Phúc Tea Migration v2 - Chạy toàn bộ đoạn này trong SQL Editor
 -- Sửa cột address_ward cho phép NULL (chính quyền 2 cấp)
@@ -74,7 +74,7 @@ export default function MigratePage() {
       if (!isSupabaseConfigured) throw new Error('Supabase not configured');
 
       const { error } = await supabase
-        .from('evaluations')
+        .from(TABLE_EVALUATIONS)
         .select('images,competitor_notes,rent_unit')
         .limit(1);
 
