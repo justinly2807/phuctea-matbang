@@ -37,6 +37,9 @@ CREATE POLICY "Allow public read" ON evaluations
 CREATE POLICY "Allow public insert" ON evaluations
   FOR INSERT WITH CHECK (true);
 
+CREATE POLICY "Allow public delete" ON evaluations
+  FOR DELETE USING (true);
+
 
 -- ============================================================
 -- === MIGRATION: Chạy đoạn dưới nếu bảng ĐÃ TỒN TẠI trước đó ===
