@@ -10,7 +10,7 @@ import { supabase, isSupabaseConfigured, TABLE_EVALUATIONS } from '@/lib/supabas
 
 const STEP_LABELS = [
   ...CATEGORIES.map((c) => ({ icon: c.icon, name: c.name })),
-  { icon: '📸', name: 'Hình ảnh & Video' },
+  { icon: '📋', name: 'Xem lại & Gửi' },
 ];
 
 export default function EvaluatePage() {
@@ -22,11 +22,13 @@ export default function EvaluatePage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadPreviews, setUploadPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [focusedCriterionId, setFocusedCriterionId] = useState<number | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
 
   const totalSteps = 5;
   const totalAnswered = Object.keys(scores).length;
 
+  // Load location info + restore saved progress
   useEffect(() => {
     const stored = sessionStorage.getItem('locationInfo');
     if (!stored) {
@@ -34,16 +36,68 @@ export default function EvaluatePage() {
       return;
     }
     setLocationInfo(JSON.parse(stored));
+
+    // Restore auto-saved progress
+    const savedScores = sessionStorage.getItem('evaluationScores');
+    const savedStep = sessionStorage.getItem('evaluationStep');
+    if (savedScores) {
+      try { setScores(JSON.parse(savedScores)); } catch { /* ignore */ }
+    }
+    if (savedStep) {
+      const step = parseInt(savedStep, 10);
+      if (step >= 1 && step <= 5) setCurrentStep(step);
+    }
   }, [router]);
+
+  // Auto-save scores + step to sessionStorage
+  useEffect(() => {
+    if (Object.keys(scores).length > 0) {
+      sessionStorage.setItem('evaluationScores', JSON.stringify(scores));
+      sessionStorage.setItem('evaluationStep', String(currentStep));
+    }
+  }, [scores, currentStep]);
+
+  // Warn before leaving mid-evaluation
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (Object.keys(scores).length > 0 && Object.keys(scores).length < 20) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [scores]);
+
+  // Auto-focus first unanswered criterion when entering a step
+  useEffect(() => {
+    if (currentStep <= 4) {
+      const criteria = getCriteriaByCategory(currentStep);
+      const firstUnanswered = criteria.find((c) => scores[String(c.id)] === undefined);
+      setFocusedCriterionId(firstUnanswered?.id ?? criteria[0]?.id ?? null);
+    }
+  }, [currentStep, scores]);
 
   const handleSelect = (criterionId: number, score: number) => {
     setScores((prev) => ({ ...prev, [String(criterionId)]: score }));
+
+    // Auto-advance to next unanswered criterion
+    setTimeout(() => {
+      if (currentStep > 4) return;
+      const criteria = getCurrentCriteria();
+      const currentIdx = criteria.findIndex((c) => c.id === criterionId);
+      for (let i = currentIdx + 1; i < criteria.length; i++) {
+        if (scores[String(criteria[i].id)] === undefined && criteria[i].id !== criterionId) {
+          setFocusedCriterionId(criteria[i].id);
+          return;
+        }
+      }
+      // All answered in this step
+      setFocusedCriterionId(null);
+    }, 300);
   };
 
   const getCurrentCriteria = () => {
-    if (currentStep <= 4) {
-      return getCriteriaByCategory(currentStep);
-    }
+    if (currentStep <= 4) return getCriteriaByCategory(currentStep);
     return [];
   };
 
@@ -54,7 +108,7 @@ export default function EvaluatePage() {
   };
 
   const isStepComplete = (step: number) => {
-    if (step > 4) return true; // Upload step is always "complete" (optional)
+    if (step > 4) return true;
     const criteria = getCriteriaByCategory(step);
     return criteria.every((c) => scores[String(c.id)] !== undefined);
   };
@@ -83,7 +137,6 @@ export default function EvaluatePage() {
     const remaining = 10 - uploadedFiles.length;
     const newFiles = files.slice(0, remaining);
 
-    // Validate sizes
     const valid = newFiles.filter((f) => {
       const isVideo = f.type.startsWith('video/');
       const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
@@ -96,7 +149,6 @@ export default function EvaluatePage() {
 
     setUploadedFiles((prev) => [...prev, ...valid]);
 
-    // Create previews
     valid.forEach((file) => {
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
@@ -109,7 +161,6 @@ export default function EvaluatePage() {
       }
     });
 
-    // Reset input
     e.target.value = '';
   };
 
@@ -118,20 +169,16 @@ export default function EvaluatePage() {
     setUploadPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Convert HEIC/non-web images to JPEG using canvas (works on Safari/iOS where HEIC is supported)
   const convertToJpeg = async (file: File): Promise<File> => {
-    // If already a web-compatible format or video, return as-is
     const webTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (webTypes.includes(file.type) || file.type.startsWith('video/') || !file.type.startsWith('image/')) {
       return file;
     }
 
-    // Convert HEIC/HEIF/other to JPEG via canvas
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        // Limit max dimension to 2048px to reduce file size
         const maxDim = 2048;
         let w = img.width;
         let h = img.height;
@@ -158,7 +205,7 @@ export default function EvaluatePage() {
       };
       img.onerror = () => {
         URL.revokeObjectURL(img.src);
-        resolve(file); // Fallback: upload original
+        resolve(file);
       };
       img.src = URL.createObjectURL(file);
     });
@@ -169,15 +216,12 @@ export default function EvaluatePage() {
 
     const urls: string[] = [];
     for (const file of uploadedFiles) {
-      // Convert HEIC/non-web images to JPEG before uploading
       const uploadFile = await convertToJpeg(file);
       const ext = uploadFile.name.split('.').pop() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage
         .from('survey-media')
-        .upload(fileName, uploadFile, {
-          contentType: uploadFile.type,
-        });
+        .upload(fileName, uploadFile, { contentType: uploadFile.type });
 
       if (!error) {
         const { data: urlData } = supabase.storage
@@ -198,7 +242,6 @@ export default function EvaluatePage() {
     const totalScore = Object.values(scores).reduce((sum, s) => sum + s, 0);
     const verdict = getVerdict(totalScore);
 
-    // Upload media files
     let imageUrls: string[] = [];
     try {
       imageUrls = await uploadToSupabase();
@@ -206,7 +249,6 @@ export default function EvaluatePage() {
       // Upload failure shouldn't block submission
     }
 
-    // Full data with new columns (v2)
     const evaluationDataFull = {
       address_street: locationInfo.addressStreet,
       address_ward: locationInfo.addressWard || '',
@@ -228,7 +270,6 @@ export default function EvaluatePage() {
       verdict,
     };
 
-    // Fallback data without new columns (for DB that hasn't been migrated)
     const evaluationDataLegacy = {
       address_street: locationInfo.addressStreet,
       address_ward: locationInfo.addressWard || '',
@@ -250,14 +291,12 @@ export default function EvaluatePage() {
     try {
       if (!isSupabaseConfigured) throw new Error('Supabase not configured');
 
-      // Try full insert first (with new columns)
       let insertResult = await supabase
         .from(TABLE_EVALUATIONS)
         .insert(evaluationDataFull)
         .select('id')
         .single();
 
-      // If fails (likely missing columns), retry with legacy columns
       if (insertResult.error) {
         console.warn('Full insert failed, retrying with legacy columns:', insertResult.error.message);
         insertResult = await supabase
@@ -270,7 +309,6 @@ export default function EvaluatePage() {
       const { data, error } = insertResult;
       if (error) throw error;
 
-      // Save to survey history
       const history = JSON.parse(localStorage.getItem('survey_history') || '[]');
       history.unshift({
         id: data.id,
@@ -281,7 +319,6 @@ export default function EvaluatePage() {
       });
       localStorage.setItem('survey_history', JSON.stringify(history.slice(0, 50)));
 
-      // Send email notification
       try {
         await fetch('/api/send-email', {
           method: 'POST',
@@ -294,15 +331,14 @@ export default function EvaluatePage() {
             surveyorName: locationInfo.surveyorName || 'Không rõ',
           }),
         });
-      } catch {
-        // Email failure shouldn't block the flow
-      }
+      } catch { /* Email failure shouldn't block */ }
 
       sessionStorage.removeItem('locationInfo');
+      sessionStorage.removeItem('evaluationScores');
+      sessionStorage.removeItem('evaluationStep');
       router.push(`/result/${data.id}`);
     } catch (err) {
       console.error('Error saving evaluation:', err);
-      // Fallback: save to localStorage if Supabase fails
       const fallbackId = 'local-' + Date.now();
       const evaluation = {
         id: fallbackId,
@@ -314,7 +350,6 @@ export default function EvaluatePage() {
       existing.push(evaluation);
       localStorage.setItem('evaluations', JSON.stringify(existing));
 
-      // Save to survey history
       const history = JSON.parse(localStorage.getItem('survey_history') || '[]');
       history.unshift({
         id: fallbackId,
@@ -326,6 +361,8 @@ export default function EvaluatePage() {
       localStorage.setItem('survey_history', JSON.stringify(history.slice(0, 50)));
 
       sessionStorage.removeItem('locationInfo');
+      sessionStorage.removeItem('evaluationScores');
+      sessionStorage.removeItem('evaluationStep');
       router.push(`/result/${fallbackId}`);
     } finally {
       setIsSubmitting(false);
@@ -343,6 +380,8 @@ export default function EvaluatePage() {
 
   const currentCriteria = getCurrentCriteria();
   const stepAnswered = getCurrentStepAnswered();
+  const totalScorePreview = totalAnswered === 20 ? Object.values(scores).reduce((a, b) => a + b, 0) : null;
+  const minutesLeft = Math.max(1, Math.ceil((20 - totalAnswered) * 0.25));
 
   return (
     <div className="min-h-screen bg-bg">
@@ -357,10 +396,16 @@ export default function EvaluatePage() {
             <span className="text-xs font-semibold text-dark">
               {STEP_LABELS[currentStep - 1].icon} {STEP_LABELS[currentStep - 1].name}
             </span>
-            <span className="text-xs font-bold text-primary">
-              Bước {currentStep}/{totalSteps}
-              {currentStep <= 4 && ` — ${stepAnswered}/5`}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-primary">
+                {totalAnswered}/20 tiêu chí
+              </span>
+              {totalAnswered > 0 && totalAnswered < 20 && (
+                <span className="text-[10px] text-gray-400">
+                  ~{minutesLeft} phút
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Step indicators */}
@@ -372,11 +417,7 @@ export default function EvaluatePage() {
                 <div
                   key={step}
                   className={`h-2 flex-1 rounded-full transition-all ${
-                    complete
-                      ? 'bg-success'
-                      : active
-                      ? 'bg-primary'
-                      : 'bg-gray-200'
+                    complete ? 'bg-success' : active ? 'bg-primary' : 'bg-gray-200'
                   }`}
                 />
               );
@@ -398,9 +439,25 @@ export default function EvaluatePage() {
         </div>
       </div>
 
-      {/* Criteria (Steps 1-4) */}
+      {/* Criteria (Steps 1-4) — Accordion Mode */}
       {currentStep <= 4 && (
         <div className="max-w-4xl mx-auto px-4 pb-28 space-y-3">
+          {/* Mini progress dots */}
+          <div className="flex gap-1.5">
+            {currentCriteria.map((c) => {
+              const answered = scores[String(c.id)] !== undefined;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setFocusedCriterionId(c.id)}
+                  className={`h-2 flex-1 rounded-full transition-all ${
+                    answered ? 'bg-success' : c.id === focusedCriterionId ? 'bg-primary' : 'bg-gray-200'
+                  }`}
+                />
+              );
+            })}
+          </div>
+
           {currentCriteria.map((criterion) => (
             <CriteriaCard
               key={criterion.id}
@@ -408,21 +465,81 @@ export default function EvaluatePage() {
               selectedScore={scores[String(criterion.id)]}
               onSelect={handleSelect}
               index={criterion.id}
+              isFocused={focusedCriterionId === criterion.id}
+              onToggleFocus={() => setFocusedCriterionId(
+                focusedCriterionId === criterion.id ? null : criterion.id
+              )}
             />
           ))}
         </div>
       )}
 
-      {/* Upload Step (Step 5) */}
+      {/* Step 5: Review + Upload */}
       {currentStep === 5 && (
         <div className="max-w-4xl mx-auto px-4 pb-28 space-y-4">
+          {/* Review Section */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+            <h3 className="font-bold text-dark mb-1">📋 Xem lại điểm số</h3>
+            <p className="text-xs text-gray-400 italic mb-4">
+              Nhấn vào điểm số để thay đổi trước khi gửi.
+            </p>
+
+            {CATEGORIES.map((cat) => {
+              const catCriteria = getCriteriaByCategory(cat.id);
+              const catScore = catCriteria.reduce((sum, c) => sum + (scores[String(c.id)] || 0), 0);
+              return (
+                <div key={cat.id} className="mb-4 last:mb-0">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-gray-600">
+                      {cat.icon} {cat.name}
+                    </span>
+                    <span className="text-xs font-bold text-dark">{catScore}/{catCriteria.length * 5}</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {catCriteria.map((c) => {
+                      const score = scores[String(c.id)] || 0;
+                      return (
+                        <div key={c.id} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 flex-1 truncate">{c.name}</span>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <button
+                                key={s}
+                                onClick={() => handleSelect(c.id, s)}
+                                className={`w-7 h-7 rounded-full text-xs font-bold transition-all ${
+                                  s === score
+                                    ? s <= 2 ? 'bg-danger text-white' : s === 3 ? 'bg-warning text-dark' : 'bg-success text-white'
+                                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                                }`}
+                              >
+                                {s}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Total score preview */}
+            <div className="border-t border-gray-100 pt-3 mt-3 flex items-center justify-between">
+              <span className="text-sm font-bold text-dark">Tổng điểm</span>
+              <span className="text-2xl font-black text-primary">
+                {totalScorePreview ?? '--'}/100
+              </span>
+            </div>
+          </div>
+
+          {/* Upload Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <h3 className="font-bold text-dark mb-1">📸 Hình ảnh & Video mặt bằng</h3>
             <p className="text-xs text-gray-400 italic mb-4">
-              Chụp ảnh mặt tiền, bên trong, khu vực xung quanh để báo cáo chi tiết hơn. Bước này không bắt buộc.
+              Chụp ảnh mặt tiền, bên trong, khu vực xung quanh. Bước này không bắt buộc.
             </p>
 
-            {/* Upload area */}
             <label className="block border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition">
               <input
                 type="file"
@@ -441,7 +558,6 @@ export default function EvaluatePage() {
               <p className="text-xs text-gray-400 mt-1">Ảnh tối đa 10MB, video tối đa 50MB. Tối đa 10 file.</p>
             </label>
 
-            {/* Preview grid */}
             {uploadPreviews.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">
                 {uploadPreviews.map((preview, i) => (
@@ -476,9 +592,8 @@ export default function EvaluatePage() {
       )}
 
       {/* Navigation Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 fixed-bottom-bar">
         <div className="max-w-4xl mx-auto flex gap-3">
-          {/* Back button */}
           {currentStep > 1 && (
             <button
               onClick={handleBack}
@@ -488,7 +603,6 @@ export default function EvaluatePage() {
             </button>
           )}
 
-          {/* Next / Submit button */}
           {currentStep < 5 ? (
             <button
               onClick={handleNext}
@@ -506,8 +620,12 @@ export default function EvaluatePage() {
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex-1 py-4 rounded-xl font-bold text-base bg-primary hover:bg-primary-dark text-dark shadow-lg hover:shadow-xl active:scale-[0.98] transition-all"
+              disabled={isSubmitting || totalAnswered < 20}
+              className={`flex-1 py-4 rounded-xl font-bold text-base transition-all ${
+                totalAnswered >= 20
+                  ? 'bg-primary hover:bg-primary-dark text-dark shadow-lg hover:shadow-xl active:scale-[0.98]'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">

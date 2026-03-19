@@ -59,6 +59,33 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Onboarding Steps */}
+        <div className="flex items-center justify-between px-2 py-3">
+          {[
+            { icon: '📍', label: 'Nhập địa chỉ' },
+            { icon: '✅', label: 'Chấm 20 tiêu chí' },
+            { icon: '📊', label: 'Nhận kết quả' },
+          ].map((item, i) => (
+            <div key={i} className="contents">
+              <div className="flex flex-col items-center gap-1.5 flex-1">
+                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-lg">
+                  {item.icon}
+                </div>
+                <span className="text-[11px] font-medium text-gray-600 text-center leading-tight">
+                  {item.label}
+                </span>
+              </div>
+              {i < 2 && (
+                <div className="flex-shrink-0 w-6 flex items-center justify-center -mt-4">
+                  <svg className="w-4 h-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
         <button
           onClick={() => setShowModal(true)}
           className="w-full bg-primary hover:bg-primary-dark text-dark font-bold px-8 py-4 rounded-xl transition-all shadow-lg hover:shadow-xl hover:scale-[1.02] text-base"

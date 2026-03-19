@@ -35,21 +35,29 @@ body {
   z-index: 1;
 }
 
-/* Score button animation */
+/* Score button animation — mobile tap feedback */
 .score-btn {
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.score-btn:hover {
-  transform: translateY(-2px);
+@media (hover: hover) {
+  .score-btn:hover {
+    transform: translateY(-2px);
+  }
 }
-.score-btn.selected {
-  transform: scale(1.05);
-  box-shadow: 0 4px 14px rgba(255, 192, 51, 0.4);
+.score-btn:active {
+  transform: scale(0.95);
+  transition-duration: 0.05s;
 }
 
 /* Progress bar animation */
 .progress-fill {
   transition: width 0.5s ease;
+}
+
+/* Safe area for iPhone notch/home indicator */
+.fixed-bottom-bar {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* Print styles for PDF */

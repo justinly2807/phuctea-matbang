@@ -229,7 +229,9 @@ export default function DashboardPage() {
           <StatCard label="Khả thi" value={stats.feasible} color="#22C55E" />
           <StatCard label="Tiềm năng" value={stats.potential} color="#EAB308" />
           <StatCard label="Rủi ro" value={stats.risky} color="#EF4444" />
-          <StatCard label="Điểm TB" value={stats.avgScore} color="#FFC033" suffix="/100" />
+          <div className="col-span-2 sm:col-span-1">
+            <StatCard label="Điểm TB" value={stats.avgScore} color="#FFC033" suffix="/100" />
+          </div>
         </div>
 
         {/* Filter & Actions */}

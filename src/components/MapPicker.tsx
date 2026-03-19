@@ -95,7 +95,7 @@ export default function MapPicker({ latitude, longitude, onLocationChange, addre
 
   return (
     <div className="relative">
-      <div ref={containerRef} className="w-full h-[200px] rounded-xl overflow-hidden border border-gray-200" />
+      <div ref={containerRef} className="w-full h-[280px] rounded-xl overflow-hidden border border-gray-200" />
       {isSearching && (
         <div className="absolute top-2 right-2 bg-white px-3 py-1 rounded-full shadow text-xs text-gray-500">
           Tìm vị trí...
