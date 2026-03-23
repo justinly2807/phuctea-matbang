@@ -1,9 +1,9 @@
 'use client';
 
-import { Criterion } from '@/types';
+import { CriterionTranslation } from '@/lib/i18n';
 
 interface CriteriaCardProps {
-  criterion: Criterion;
+  criterion: CriterionTranslation;
   selectedScore?: number;
   onSelect: (criterionId: number, score: number) => void;
   index: number;

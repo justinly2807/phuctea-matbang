@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import { getVerdictLabel, getVerdictColor } from '@/types';
+import { getVerdictColor } from '@/types';
+import { useLanguage } from '@/lib/i18n';
 
 interface HistoryItem {
   id: string;
@@ -17,6 +18,7 @@ export default function HistoryPage() {
   const router = useRouter();
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { t, lang } = useLanguage();
 
   useEffect(() => {
     const stored = JSON.parse(localStorage.getItem('survey_history') || '[]');
@@ -25,10 +27,20 @@ export default function HistoryPage() {
   }, []);
 
   const clearHistory = () => {
-    if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử khảo sát?')) {
+    if (confirm(t.history.clearConfirm)) {
       localStorage.removeItem('survey_history');
       setItems([]);
     }
+  };
+
+  const getVerdictLabel = (verdict: 'feasible' | 'potential' | 'risky') => {
+    return t.verdicts[verdict].label;
+  };
+
+  const getDateLocale = () => {
+    if (lang === 'zh') return 'zh-CN';
+    if (lang === 'en') return 'en-US';
+    return 'vi-VN';
   };
 
   return (
@@ -39,18 +51,18 @@ export default function HistoryPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold text-dark">Lịch sử khảo sát</h1>
+            <h1 className="text-xl font-bold text-dark">{t.history.title}</h1>
             <p className="text-sm text-gray-400 mt-0.5">
               {items.length > 0
-                ? `${items.length} bài khảo sát đã thực hiện`
-                : 'Chưa có khảo sát nào'}
+                ? `${items.length} ${t.history.surveysCompleted}`
+                : t.history.noSurveys}
             </p>
           </div>
           <button
             onClick={() => router.push('/')}
             className="px-4 py-2 bg-primary hover:bg-primary-dark text-dark font-bold text-sm rounded-xl transition"
           >
-            + Mới
+            {t.history.newButton}
           </button>
         </div>
 
@@ -65,13 +77,13 @@ export default function HistoryPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <p className="text-gray-500 mb-1">Chưa có khảo sát nào</p>
-            <p className="text-sm text-gray-400 mb-6">Bắt đầu khảo sát mặt bằng đầu tiên của bạn</p>
+            <p className="text-gray-500 mb-1">{t.history.noSurveys}</p>
+            <p className="text-sm text-gray-400 mb-6">{t.history.noSurveysHint}</p>
             <button
               onClick={() => router.push('/')}
               className="bg-primary hover:bg-primary-dark text-dark font-bold px-6 py-3 rounded-xl transition"
             >
-              Bắt đầu khảo sát
+              {t.history.startFirst}
             </button>
           </div>
         ) : (
@@ -106,7 +118,7 @@ export default function HistoryPage() {
                             {verdictLabel}
                           </span>
                           <span className="text-xs text-gray-400">
-                            {new Date(item.created_at).toLocaleDateString('vi-VN')}
+                            {new Date(item.created_at).toLocaleDateString(getDateLocale())}
                           </span>
                         </div>
                       </div>
@@ -127,7 +139,7 @@ export default function HistoryPage() {
                 onClick={clearHistory}
                 className="text-sm text-gray-400 hover:text-danger transition"
               >
-                Xóa lịch sử
+                {t.history.clearHistory}
               </button>
             </div>
           </>

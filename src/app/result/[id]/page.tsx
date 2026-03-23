@@ -3,41 +3,116 @@
 import { useEffect, useState, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import { Evaluation, getVerdictLabel, getVerdictColor, getVerdictDescription, getFullAddress } from '@/types';
-import { CATEGORIES } from '@/lib/criteria';
+import { Evaluation, getVerdictColor, getFullAddress } from '@/types';
 import { calculateCategoryScores } from '@/lib/scoring';
 import { supabase, isSupabaseConfigured, TABLE_EVALUATIONS } from '@/lib/supabase';
-import { analyzeEvaluation } from '@/lib/analyzer';
-import { CRITERIA } from '@/lib/criteria';
+import { useLanguage } from '@/lib/i18n';
+import { EvaluationScores } from '@/types';
 
 function formatNumber(value: string): string {
   const digits = value.replace(/\D/g, '');
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
-function getSmartSummary(categoryScores: { categoryName: string; percentage: number }[], verdict: string): string {
-  const sorted = [...categoryScores].sort((a, b) => b.percentage - a.percentage);
-  const best = sorted[0];
-  const worst = sorted[sorted.length - 1];
+function useSmartSummary() {
+  const { t } = useLanguage();
 
-  if (verdict === 'feasible') {
-    return `Mặt bằng đạt tiêu chuẩn tốt. "${best.categoryName}" là điểm mạnh nổi bật (${best.percentage}%).${worst.percentage < 70 ? ` Lưu ý "${worst.categoryName}" chỉ đạt ${worst.percentage}%.` : ''}`;
-  }
-  if (verdict === 'potential') {
-    return `Mặt bằng có tiềm năng với "${best.categoryName}" đạt ${best.percentage}%. Cần cải thiện "${worst.categoryName}" (${worst.percentage}%) để tối ưu hơn.`;
-  }
-  return `Mặt bằng có nhiều hạn chế. "${worst.categoryName}" chỉ đạt ${worst.percentage}%, cần đặc biệt lưu ý trước khi quyết định.`;
+  return (categoryScores: { categoryName: string; percentage: number }[], verdict: string) => {
+    const sorted = [...categoryScores].sort((a, b) => b.percentage - a.percentage);
+    const best = sorted[0];
+    const worst = sorted[sorted.length - 1];
+
+    if (verdict === 'feasible') {
+      const worstNote = worst.percentage < 70
+        ? ` ${t.result.warnings}: "${worst.categoryName}" ${worst.percentage}%.`
+        : '';
+      return t.result.smartSummaryFeasible
+        .replace('{best}', best.categoryName)
+        .replace('{bestPct}', String(best.percentage))
+        .replace('{worstNote}', worstNote);
+    }
+    if (verdict === 'potential') {
+      return t.result.smartSummaryPotential
+        .replace('{best}', best.categoryName)
+        .replace('{bestPct}', String(best.percentage))
+        .replace('{worst}', worst.categoryName)
+        .replace('{worstPct}', String(worst.percentage));
+    }
+    return t.result.smartSummaryRisky
+      .replace('{worst}', worst.categoryName)
+      .replace('{worstPct}', String(worst.percentage));
+  };
+}
+
+function useAnalyzeEvaluation() {
+  const { t } = useLanguage();
+
+  return (scores: EvaluationScores) => {
+    const strengths: { name: string; description: string }[] = [];
+    const weaknesses: { name: string; description: string }[] = [];
+
+    for (const criterion of t.criteriaList) {
+      const score = scores[String(criterion.id)] || 0;
+      const data = t.analysisData[criterion.id];
+      if (!data) continue;
+
+      if (score >= 4) {
+        strengths.push({ name: criterion.name, description: data.strengthNote });
+      } else if (score <= 2) {
+        weaknesses.push({ name: criterion.name, description: data.weaknessNote });
+      }
+    }
+
+    const sortedCriteria = t.criteriaList
+      .map((c) => ({ criterion: c, score: scores[String(c.id)] || 0 }))
+      .sort((a, b) => a.score - b.score);
+
+    const suggestions: string[] = [];
+    const usedIds = new Set<number>();
+
+    for (const { criterion, score } of sortedCriteria) {
+      if (suggestions.length >= 3) break;
+      if (usedIds.has(criterion.id)) continue;
+      if (score >= 4) continue;
+
+      const data = t.analysisData[criterion.id];
+      if (data) {
+        suggestions.push(data.suggestion);
+        usedIds.add(criterion.id);
+      }
+    }
+
+    if (suggestions.length === 0) {
+      suggestions.push(...t.analysisFallback.allGood);
+    } else if (suggestions.length < 3) {
+      for (const f of t.analysisFallback.fillers) {
+        if (suggestions.length >= 3) break;
+        suggestions.push(f);
+      }
+    }
+
+    return { strengths, weaknesses, suggestions };
+  };
 }
 
 export default function ResultPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { t, lang } = useLanguage();
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [loading, setLoading] = useState(true);
   const [shared, setShared] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [exporting, setExporting] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const getSmartSummary = useSmartSummary();
+  const analyzeEvaluation = useAnalyzeEvaluation();
+
+  const getDateLocale = () => {
+    if (lang === 'zh') return 'zh-CN';
+    if (lang === 'en') return 'en-US';
+    return 'vi-VN';
+  };
 
   useEffect(() => {
     async function fetchEvaluation() {
@@ -77,11 +152,11 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
   const handleShare = async () => {
     const url = window.location.href;
     const title = evaluation
-      ? `Phúc Tea - Khảo sát ${evaluation.address_district}, ${evaluation.address_city}`
-      : 'Phúc Tea - Kết quả khảo sát';
+      ? `Phúc Tea - ${evaluation.address_district}, ${evaluation.address_city}`
+      : 'Phúc Tea';
     const text = evaluation
-      ? `Kết quả khảo sát mặt bằng: ${evaluation.total_score}/100 - ${getVerdictLabel(evaluation.verdict)}`
-      : 'Xem kết quả khảo sát mặt bằng';
+      ? `${evaluation.total_score}/100 - ${t.verdicts[evaluation.verdict].label}`
+      : '';
 
     if (navigator.share) {
       try {
@@ -138,10 +213,10 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
       }
 
       const address = `${evaluation.address_district}-${evaluation.address_city}`.replace(/\s+/g, '-');
-      pdf.save(`PhucTea-KhaoSat-${address}-${evaluation.total_score}diem.pdf`);
+      pdf.save(`PhucTea-Survey-${address}-${evaluation.total_score}.pdf`);
     } catch (err) {
       console.error('PDF export error:', err);
-      alert('Không thể xuất PDF. Vui lòng thử lại.');
+      alert(t.result.exportError);
     } finally {
       setExporting(false);
     }
@@ -163,9 +238,9 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
       <div className="min-h-screen bg-bg">
         <Header />
         <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-          <p className="text-gray-500 mb-4">Không tìm thấy kết quả đánh giá</p>
+          <p className="text-gray-500 mb-4">{t.result.notFound}</p>
           <button onClick={() => router.push('/')} className="bg-primary text-dark font-bold px-6 py-3 rounded-xl">
-            Khảo sát mới
+            {t.common.newSurvey}
           </button>
         </div>
       </div>
@@ -174,10 +249,17 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
 
   const categoryScores = calculateCategoryScores(evaluation.scores);
   const verdictColor = getVerdictColor(evaluation.verdict);
-  const verdictLabel = getVerdictLabel(evaluation.verdict);
+  const verdictLabel = t.verdicts[evaluation.verdict].label;
+  const verdictDescription = t.verdicts[evaluation.verdict].description;
   const images = evaluation.images || [];
   const imageUrls = images.filter((url) => !/\.(mp4|mov|avi|webm)$/i.test(url));
   const analysis = analyzeEvaluation(evaluation.scores);
+
+  // Map category scores to translated names
+  const translatedCategoryScores = categoryScores.map((cs) => ({
+    ...cs,
+    categoryName: t.categories.find((c) => c.id === cs.categoryId)?.name || cs.categoryName,
+  }));
 
   return (
     <div className="min-h-screen bg-bg pb-24">
@@ -199,32 +281,32 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             >
               {verdictLabel}
             </div>
-            <p className="text-gray-500 text-sm mt-2">{getVerdictDescription(evaluation.verdict)}</p>
-            <p className="text-xs text-gray-400 mt-1">Tổng điểm: {evaluation.total_score}/100</p>
+            <p className="text-gray-500 text-sm mt-2">{verdictDescription}</p>
+            <p className="text-xs text-gray-400 mt-1">{t.common.totalScore}: {evaluation.total_score}/100</p>
           </div>
         </div>
 
-        {/* 2. Location Info (moved up for context) */}
+        {/* 2. Location Info */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 space-y-3">
-          <h3 className="font-bold text-dark text-sm">📍 Thông tin mặt bằng</h3>
+          <h3 className="font-bold text-dark text-sm">{t.result.locationInfo}</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-            <InfoRow label="Địa chỉ" value={getFullAddress(evaluation)} />
-            {evaluation.landlord_name && <InfoRow label="Chủ nhà" value={evaluation.landlord_name} />}
-            {evaluation.landlord_phone && <InfoRow label="SĐT" value={evaluation.landlord_phone} />}
+            <InfoRow label={t.result.address} value={getFullAddress(evaluation)} />
+            {evaluation.landlord_name && <InfoRow label={t.result.landlord} value={evaluation.landlord_name} />}
+            {evaluation.landlord_phone && <InfoRow label={t.result.phone} value={evaluation.landlord_phone} />}
             {evaluation.rent_price && (
               <InfoRow
-                label="Giá thuê"
-                value={`${formatNumber(evaluation.rent_price)} VNĐ/${evaluation.rent_unit === 'year' ? 'năm' : 'tháng'}`}
+                label={t.result.rentPrice}
+                value={`${formatNumber(evaluation.rent_price)} VND/${evaluation.rent_unit === 'year' ? t.common.perYear : t.common.perMonth}`}
               />
             )}
-            {evaluation.area_sqm && <InfoRow label="Diện tích" value={`${evaluation.area_sqm} m²`} />}
-            {evaluation.surveyor_name && <InfoRow label="Người KS" value={evaluation.surveyor_name} />}
-            {evaluation.survey_date && <InfoRow label="Ngày KS" value={new Date(evaluation.survey_date).toLocaleDateString('vi-VN')} />}
+            {evaluation.area_sqm && <InfoRow label={t.result.area} value={`${evaluation.area_sqm} m²`} />}
+            {evaluation.surveyor_name && <InfoRow label={t.result.surveyor} value={evaluation.surveyor_name} />}
+            {evaluation.survey_date && <InfoRow label={t.result.surveyDate} value={new Date(evaluation.survey_date).toLocaleDateString(getDateLocale())} />}
           </div>
 
           {evaluation.competitor_notes && (
             <div className="pt-3 border-t border-gray-100">
-              <p className="text-xs font-semibold text-gray-500 mb-1.5">🏪 Đối thủ cạnh tranh</p>
+              <p className="text-xs font-semibold text-gray-500 mb-1.5">{t.result.competitor}</p>
               <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 leading-relaxed whitespace-pre-wrap">
                 {evaluation.competitor_notes}
               </p>
@@ -235,19 +317,19 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         {/* 3. Smart Summary */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
           <p className="text-sm text-gray-700 leading-relaxed">
-            💡 {getSmartSummary(categoryScores, evaluation.verdict)}
+            💡 {getSmartSummary(translatedCategoryScores, evaluation.verdict)}
           </p>
         </div>
 
         {/* 4. Category Scores */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-          <h3 className="font-bold text-dark mb-3 text-sm">📊 Điểm theo nhóm</h3>
+          <h3 className="font-bold text-dark mb-3 text-sm">{t.result.scoreByGroup}</h3>
           <div className="space-y-2.5">
-            {categoryScores.map((cs) => (
+            {translatedCategoryScores.map((cs) => (
               <div key={cs.categoryId}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-gray-600">
-                    {CATEGORIES.find((c) => c.id === cs.categoryId)?.icon} {cs.categoryName}
+                    {t.categories.find((c) => c.id === cs.categoryId)?.icon} {cs.categoryName}
                   </span>
                   <span className="text-xs font-bold text-dark">{cs.score}/{cs.maxScore}</span>
                 </div>
@@ -268,15 +350,16 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
         {/* 5. Strengths & Weaknesses */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="px-5 py-3 border-b border-gray-100">
-            <h3 className="font-bold text-dark text-sm">📋 Nhận xét nhanh</h3>
+            <h3 className="font-bold text-dark text-sm">{t.result.quickReview}</h3>
           </div>
           <div className="p-4 space-y-4">
             {analysis.strengths.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-green-600 mb-2">✅ Điểm mạnh ({analysis.strengths.length})</p>
+                <p className="text-xs font-semibold text-green-600 mb-2">{t.result.strengths} ({analysis.strengths.length})</p>
                 <div className="flex flex-wrap gap-2">
                   {analysis.strengths.map((s, i) => {
-                    const score = evaluation.scores[String(CRITERIA.find(c => c.name === s.name)?.id)] || 0;
+                    const criterion = t.criteriaList.find(c => c.name === s.name);
+                    const score = criterion ? evaluation.scores[String(criterion.id)] || 0 : 0;
                     return (
                       <span key={i} className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1.5 rounded-lg">
                         {s.name} <span className="text-green-500 font-bold">{score}/5</span>
@@ -289,10 +372,11 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
 
             {analysis.weaknesses.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-red-600 mb-2">⚠️ Cần lưu ý ({analysis.weaknesses.length})</p>
+                <p className="text-xs font-semibold text-red-600 mb-2">{t.result.warnings} ({analysis.weaknesses.length})</p>
                 <div className="flex flex-wrap gap-2">
                   {analysis.weaknesses.map((w, i) => {
-                    const score = evaluation.scores[String(CRITERIA.find(c => c.name === w.name)?.id)] || 0;
+                    const criterion = t.criteriaList.find(c => c.name === w.name);
+                    const score = criterion ? evaluation.scores[String(criterion.id)] || 0 : 0;
                     return (
                       <span key={i} className="inline-flex items-center gap-1 bg-red-50 text-red-700 text-xs font-medium px-2.5 py-1.5 rounded-lg">
                         {w.name} <span className="text-red-500 font-bold">{score}/5</span>
@@ -304,11 +388,11 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             )}
 
             {analysis.strengths.length === 0 && analysis.weaknesses.length === 0 && (
-              <p className="text-xs text-gray-500 text-center py-2">Tất cả tiêu chí đều ở mức trung bình (3/5).</p>
+              <p className="text-xs text-gray-500 text-center py-2">{t.result.allAverage}</p>
             )}
 
             <div className="pt-3 border-t border-gray-100">
-              <p className="text-xs font-semibold text-amber-600 mb-2">💡 Gợi ý ({analysis.suggestions.length})</p>
+              <p className="text-xs font-semibold text-amber-600 mb-2">{t.result.suggestions} ({analysis.suggestions.length})</p>
               <div className="space-y-1.5">
                 {analysis.suggestions.map((s, i) => (
                   <div key={i} className="flex gap-2">
@@ -326,7 +410,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-5 py-3 border-b border-gray-100">
               <h3 className="font-bold text-dark text-sm flex items-center gap-2">
-                📸 Hình ảnh mặt bằng ({images.length})
+                {t.result.images} ({images.length})
               </h3>
             </div>
             <div className="p-4">
@@ -348,7 +432,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
                       className="aspect-square rounded-xl overflow-hidden bg-gray-100 cursor-pointer hover:opacity-90 transition"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={url} alt={`Hình ${i + 1}`} className="w-full h-full object-cover" />
+                      <img src={url} alt={`${i + 1}`} className="w-full h-full object-cover" />
                     </button>
                   );
                 })}
@@ -375,12 +459,12 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             {shared ? (
               <>
                 <svg className="w-5 h-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                Đã sao chép!
+                {t.common.copied}
               </>
             ) : (
               <>
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                Chia sẻ
+                {t.common.share}
               </>
             )}
           </button>
@@ -404,7 +488,7 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             onClick={() => router.push('/')}
             className="flex-1 bg-primary hover:bg-primary-dark text-dark font-bold py-3.5 rounded-xl transition-all"
           >
-            Khảo sát mới
+            {t.common.newSurvey}
           </button>
         </div>
       </div>
@@ -415,7 +499,6 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
           className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center"
           onClick={() => setLightboxIndex(null)}
         >
-          {/* Close */}
           <button
             onClick={() => setLightboxIndex(null)}
             className="absolute top-4 right-4 w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white z-10"
@@ -423,12 +506,10 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             ✕
           </button>
 
-          {/* Counter */}
           <div className="absolute top-4 left-4 text-white/60 text-sm z-10">
             {lightboxIndex + 1} / {imageUrls.length}
           </div>
 
-          {/* Prev */}
           {lightboxIndex > 0 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex - 1); }}
@@ -440,7 +521,6 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             </button>
           )}
 
-          {/* Next */}
           {lightboxIndex < imageUrls.length - 1 && (
             <button
               onClick={(e) => { e.stopPropagation(); setLightboxIndex(lightboxIndex + 1); }}
@@ -452,7 +532,6 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             </button>
           )}
 
-          {/* Image with swipe */}
           <div
             className="max-w-full max-h-[85vh] px-12"
             onClick={(e) => e.stopPropagation()}
@@ -474,12 +553,11 @@ export default function ResultPage({ params }: { params: Promise<{ id: string }>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageUrls[lightboxIndex]}
-              alt={`Hình ${lightboxIndex + 1}`}
+              alt={`${lightboxIndex + 1}`}
               className="max-w-full max-h-[85vh] object-contain rounded-lg"
             />
           </div>
 
-          {/* Indicator dots */}
           {imageUrls.length <= 10 && (
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-1.5">
               {imageUrls.map((_, i) => (

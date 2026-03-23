@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import { useLanguage } from '@/lib/i18n';
 
 interface MapPickerProps {
   latitude?: number;
@@ -26,6 +27,7 @@ export default function MapPicker({ latitude, longitude, onLocationChange, addre
   const markerRef = useRef<L.Marker | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -98,11 +100,11 @@ export default function MapPicker({ latitude, longitude, onLocationChange, addre
       <div ref={containerRef} className="w-full h-[280px] rounded-xl overflow-hidden border border-gray-200" />
       {isSearching && (
         <div className="absolute top-2 right-2 bg-white px-3 py-1 rounded-full shadow text-xs text-gray-500">
-          Tìm vị trí...
+          {t.map.searching}
         </div>
       )}
       <p className="text-xs text-gray-400 mt-1 text-center">
-        Nhấn hoặc kéo ghim để điều chỉnh vị trí
+        {t.map.hint}
       </p>
     </div>
   );

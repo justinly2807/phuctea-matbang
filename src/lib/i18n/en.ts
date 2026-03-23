@@ -1,0 +1,538 @@
+import { Translations } from './types';
+
+export const en: Translations = {
+  langName: 'English',
+  langCode: 'en',
+
+  common: {
+    continue: 'Continue',
+    back: 'Back',
+    submit: 'Submit',
+    share: 'Share',
+    copied: 'Copied!',
+    newSurvey: 'New Survey',
+    totalScore: 'Total Score',
+    criteria: 'criteria',
+    minutes: 'min',
+    skip: 'Skip',
+    startSurvey: 'Start Survey',
+    loading: 'Loading...',
+    perMonth: 'month',
+    perYear: 'year',
+  },
+
+  home: {
+    systemTitle: 'Franchise Location Assessment System',
+    heroTitle: '🏆 Right Location = 50% Success',
+    heroDescription: 'A good location can increase your success rate by 50% and save hundreds of millions of VND in operating costs. Phúc Tea\'s 20-criteria assessment system helps you evaluate locations scientifically, accurately, and professionally.',
+    badge20: '20 evaluation criteria',
+    badgeInstant: 'Instant results',
+    badgeShare: 'Share results',
+    step1: 'Enter address',
+    step2: 'Score 20 criteria',
+    step3: 'Get results',
+    startButton: '🚀 Start Survey Now',
+    historyButton: 'Survey History',
+  },
+
+  header: {
+    subtitle: 'Location Survey',
+  },
+
+  modal: {
+    title: 'Location Assessment Criteria',
+    step1Hint: 'Enter location and surveyor information.',
+    step2Hint: 'Additional information (optional).',
+    addressSection: 'Location Address',
+    required: '*Required',
+    gpsButton: 'Get Current Location (GPS)',
+    gpsLoading: 'Getting location...',
+    streetPlaceholder: 'Street address *',
+    wardPlaceholder: 'Ward / Commune (optional)',
+    districtPlaceholder: 'District *',
+    cityPlaceholder: 'Province / City *',
+    surveyorSection: 'Surveyor',
+    surveyorPlaceholder: 'Surveyor full name *',
+    landlordPlaceholder: 'Landlord name',
+    phonePlaceholder: 'Landlord phone',
+    rentPlaceholder: 'Rental price (VND)',
+    areaPlaceholder: 'Floor area',
+    competitorLabel: 'Competitor notes',
+    competitorPlaceholder: 'E.g.: Gong Cha 50m away, Highland Coffee across the street, 3 other bubble tea shops nearby...',
+    additionalInfo: 'Additional Information',
+    optional: '(optional)',
+    addressEntered: 'Address entered',
+    surveyorLabel: 'Surveyor',
+    notFound: 'Not found',
+    errorStreet: 'Please enter street address',
+    errorDistrict: 'Required',
+    errorCity: 'Required',
+    errorSurveyor: 'Please enter surveyor name',
+    errorGPS: 'Unable to get location. Please allow GPS access.',
+    errorGPSNotSupported: 'Browser does not support GPS',
+    fileTooLarge: 'is too large (max',
+  },
+
+  evaluate: {
+    surveying: 'Surveying',
+    reviewAndSubmit: 'Review & Submit',
+    reviewTitle: '📋 Review Scores',
+    reviewHint: 'Tap on scores to change before submitting.',
+    uploadTitle: '📸 Location Photos & Videos',
+    uploadHint: 'Take photos of the storefront, interior, and surrounding area. This step is optional.',
+    uploadButton: 'Tap to select photos or videos',
+    uploadLimit: 'Maximum 10 files reached',
+    uploadMaxSize: 'Photos max 10MB, videos max 50MB. Up to 10 files.',
+    filesSelected: 'files selected',
+    remainingCriteria: 'criteria remaining',
+    viewResults: 'View Assessment Results',
+    uploading: 'Uploading photos...',
+    processing: 'Processing...',
+  },
+
+  result: {
+    notFound: 'Assessment results not found',
+    locationInfo: '📍 Location Information',
+    address: 'Address',
+    landlord: 'Landlord',
+    phone: 'Phone',
+    rentPrice: 'Rent',
+    area: 'Area',
+    surveyor: 'Surveyor',
+    surveyDate: 'Survey Date',
+    competitor: '🏪 Competitors',
+    scoreByGroup: '📊 Scores by Category',
+    quickReview: '📋 Quick Assessment',
+    strengths: '✅ Strengths',
+    warnings: '⚠️ Areas of Concern',
+    suggestions: '💡 Recommendations',
+    allAverage: 'All criteria scored average (3/5).',
+    images: '📸 Location Photos',
+    exportError: 'Unable to export PDF. Please try again.',
+    smartSummaryFeasible: 'Location meets good standards. "{best}" is the standout strength ({bestPct}%).{worstNote}',
+    smartSummaryPotential: 'Location has potential with "{best}" scoring {bestPct}%. Needs improvement in "{worst}" ({worstPct}%) for optimization.',
+    smartSummaryRisky: 'Location has significant limitations. "{worst}" scored only {worstPct}%, requiring special attention before deciding.',
+  },
+
+  history: {
+    title: 'Survey History',
+    surveysCompleted: 'surveys completed',
+    noSurveys: 'No surveys yet',
+    noSurveysHint: 'Start your first location survey',
+    startFirst: 'Start Survey',
+    clearHistory: 'Clear History',
+    clearConfirm: 'Are you sure you want to clear all survey history?',
+    newButton: '+ New',
+  },
+
+  map: {
+    searching: 'Finding location...',
+    hint: 'Tap or drag the pin to adjust location',
+  },
+
+  categories: [
+    { id: 1, name: 'Location & Accessibility', icon: '📍' },
+    { id: 2, name: 'Premises & Space', icon: '🏠' },
+    { id: 3, name: 'Environment & Legal', icon: '📋' },
+    { id: 4, name: 'Potential & Cost', icon: '💰' },
+  ],
+
+  criteriaList: [
+    // === I. Location & Accessibility ===
+    {
+      id: 1,
+      name: 'Traffic Flow',
+      description: 'Daily foot traffic and vehicle volume',
+      hint: 'Stand and observe the location for about 15-30 minutes during peak hours (7-9 AM, 11 AM-1 PM, 5-7 PM). Count the number of pedestrians and vehicles passing by.',
+      options: [
+        { score: 1, label: 'Very low (dead-end alley, deserted road)' },
+        { score: 2, label: 'Low (road with few passersby)' },
+        { score: 3, label: 'Average (small road, moderate residential area)' },
+        { score: 4, label: 'High (major road, densely populated area)' },
+        { score: 5, label: 'Very high (city center, major intersection)' },
+      ],
+    },
+    {
+      id: 2,
+      name: 'Visibility',
+      description: 'How easily visible the shop is from afar',
+      hint: 'Walk from 2 directions on the main road, 50-100m from the premises. Can you clearly see the location? Is it blocked by trees, other signage, or structures?',
+      options: [
+        { score: 1, label: 'Very poor (hard to see from the road)' },
+        { score: 2, label: 'Poor (blocked by trees or other structures)' },
+        { score: 3, label: 'Average (need to get closer to see clearly)' },
+        { score: 4, label: 'Good (visible from a moderate distance)' },
+        { score: 5, label: 'Excellent (wide, open frontage, unobstructed)' },
+      ],
+    },
+    {
+      id: 3,
+      name: 'Surrounding Amenities',
+      description: 'Presence of nearby facilities serving customer needs',
+      hint: 'Walk around within a 200-500m radius. Note: schools, offices, markets, supermarkets, hospitals, parks, apartment complexes...',
+      options: [
+        { score: 1, label: 'Very few (quiet area, minimal amenities)' },
+        { score: 2, label: 'Few (mostly residential houses)' },
+        { score: 3, label: 'Average (residential area with some small shops)' },
+        { score: 4, label: 'Many (convenience stores, markets, parks...)' },
+        { score: 5, label: 'Very many (shopping centers, offices, schools...)' },
+      ],
+    },
+    {
+      id: 4,
+      name: 'Parking',
+      description: 'Parking availability for customers',
+      hint: 'Check: Is there a dedicated parking area? Is the sidewalk wide enough for motorbikes? Is there a public parking lot nearby? Is parking prohibited on the street?',
+      options: [
+        { score: 1, label: 'No parking available' },
+        { score: 2, label: 'Very limited parking' },
+        { score: 3, label: 'Parking is difficult' },
+        { score: 4, label: 'Adequate parking' },
+        { score: 5, label: 'Spacious and convenient parking' },
+      ],
+    },
+    {
+      id: 5,
+      name: 'Public Transport',
+      description: 'Access via public transportation',
+      hint: 'Find the nearest bus stop or metro station on Google Maps. Are there any stops within a 300m radius? How many routes pass through?',
+      options: [
+        { score: 1, label: 'Very inconvenient (far from public transport)' },
+        { score: 2, label: 'Inconvenient (far from transit stops)' },
+        { score: 3, label: 'Average (short walk to a bus stop)' },
+        { score: 4, label: 'Convenient (bus stop within 500m)' },
+        { score: 5, label: 'Very convenient (near bus stop or train station)' },
+      ],
+    },
+
+    // === II. Premises & Space ===
+    {
+      id: 6,
+      name: 'Floor Area',
+      description: 'Suitability for business model',
+      hint: 'Refer to Phúc Tea models: 4-20 sqm = Cart | 20-50 sqm = Take Away | 50-150 sqm = Standard | Over 150 sqm = Flagship. Measure or estimate the actual usable area, then select the level that matches your desired model.',
+      options: [
+        { score: 1, label: 'Very small (insufficient for any model)' },
+        { score: 2, label: 'Small (only suitable for cart model, 4-20 sqm)' },
+        { score: 3, label: 'Average (suitable for Take Away, 20-50 sqm)' },
+        { score: 4, label: 'Suitable (Standard model, 50-150 sqm)' },
+        { score: 5, label: 'Very spacious (Flagship model, over 150 sqm)' },
+      ],
+    },
+    {
+      id: 7,
+      name: 'Floor Plan Shape',
+      description: 'Ease of layout arrangement',
+      hint: 'Observe the shape: square or long and narrow? Are there columns, steps, or dead corners? Visualize arranging a bar counter, seating, and storage.',
+      options: [
+        { score: 1, label: 'Cramped, inconvenient layout' },
+        { score: 2, label: 'Many corners, columns, limited space' },
+        { score: 3, label: 'Irregular shape, hard to arrange' },
+        { score: 4, label: 'Rectangular, relatively easy to arrange' },
+        { score: 5, label: 'Square, easy to arrange' },
+      ],
+    },
+    {
+      id: 8,
+      name: 'Storefront',
+      description: 'Width and attractiveness of storefront',
+      hint: 'Measure the storefront width (meters). Under 3m is narrow, 4-6m is good, over 6m is wide. Can a large signboard be placed and eye-catching decorations displayed?',
+      options: [
+        { score: 1, label: 'Very narrow, hard to attract customers' },
+        { score: 2, label: 'Narrow' },
+        { score: 3, label: 'Average' },
+        { score: 4, label: 'Can be used for outdoor seating area' },
+        { score: 5, label: 'Wide and spacious' },
+      ],
+    },
+    {
+      id: 9,
+      name: 'Structure & Utilities',
+      description: 'Quality of structure and available utilities',
+      hint: 'Inspect: Are walls cracked? Is the ceiling leaking? Check the electrical system (sufficient capacity for blenders, refrigerators?), water supply, drainage, and restroom.',
+      options: [
+        { score: 1, label: 'Severely deteriorated' },
+        { score: 2, label: 'Poor condition, needs major repairs' },
+        { score: 3, label: 'Average, needs renovation' },
+        { score: 4, label: 'Fairly good, needs minor repairs' },
+        { score: 5, label: 'Solid structure, fully equipped' },
+      ],
+    },
+    {
+      id: 10,
+      name: 'Lighting & Ventilation',
+      description: 'Light and air conditions',
+      hint: 'Enter the premises during daytime. Is there natural light? Are there windows or a skylight? Does the space feel stuffy, hot, or humid?',
+      options: [
+        { score: 1, label: 'Very dark, stuffy, poor air circulation' },
+        { score: 2, label: 'Somewhat dark and stuffy' },
+        { score: 3, label: 'Average' },
+        { score: 4, label: 'Adequate lighting, good ventilation' },
+        { score: 5, label: 'Natural light, airy and cool' },
+      ],
+    },
+
+    // === III. Environment & Legal ===
+    {
+      id: 11,
+      name: 'Security',
+      description: 'Area safety level',
+      hint: 'Ask local residents about security conditions. Observe: Are there area security cameras? Is there street lighting at night? Are there any troublesome spots nearby?',
+      options: [
+        { score: 1, label: 'Very poor (high-risk area)' },
+        { score: 2, label: 'Poor (some security concerns)' },
+        { score: 3, label: 'Average' },
+        { score: 4, label: 'Good (security is ensured)' },
+        { score: 5, label: 'Very good (secure area, minimal crime)' },
+      ],
+    },
+    {
+      id: 12,
+      name: 'Environmental Hygiene',
+      description: 'Surrounding cleanliness',
+      hint: 'Observe: Is there trash, stagnant water, or bad odors around? Is the drainage system functioning well? Does the area flood during rain?',
+      options: [
+        { score: 1, label: 'Heavily polluted' },
+        { score: 2, label: 'Polluted, lots of litter' },
+        { score: 3, label: 'Average' },
+        { score: 4, label: 'Relatively clean' },
+        { score: 5, label: 'Clean and fresh' },
+      ],
+    },
+    {
+      id: 13,
+      name: 'Surrounding Landscape',
+      description: 'Area aesthetics',
+      hint: 'Take 360-degree photos of the surroundings. Are there trees or parks? Are neighboring buildings clean and well-maintained?',
+      options: [
+        { score: 1, label: 'Very unattractive, off-putting for customers' },
+        { score: 2, label: 'Unattractive, affects the shop\'s appeal' },
+        { score: 3, label: 'Average' },
+        { score: 4, label: 'Open and pleasant' },
+        { score: 5, label: 'Beautiful, plenty of greenery' },
+      ],
+    },
+    {
+      id: 14,
+      name: 'Legal Documentation',
+      description: 'Status of legal documents',
+      hint: 'Verify: (1) Is the landlord the actual property owner? (2) Is there a land title certificate? (3) Is F&B business permitted at this location? (4) Are there any ongoing legal disputes? Additionally, survey local residents about future road construction or urban planning projects.',
+      options: [
+        { score: 1, label: 'Invalid' },
+        { score: 2, label: 'Unclear' },
+        { score: 3, label: 'Missing some important documents' },
+        { score: 4, label: 'Valid, needs some supplementary documents' },
+        { score: 5, label: 'Complete and valid' },
+      ],
+    },
+    {
+      id: 15,
+      name: 'Property Owner',
+      description: 'Landlord credibility and cooperation',
+      hint: 'Assess during the meeting: Is the landlord enthusiastic? Do they have a good rental history? Are there any unreasonable demands? Ask previous tenants (if any).',
+      options: [
+        { score: 1, label: 'Untrustworthy' },
+        { score: 2, label: 'Difficult to work with' },
+        { score: 3, label: 'Average' },
+        { score: 4, label: 'Easy to work with' },
+        { score: 5, label: 'Credible and cooperative' },
+      ],
+    },
+
+    // === IV. Potential & Cost ===
+    {
+      id: 16,
+      name: 'Rental Price',
+      description: 'Rent compared to market rates',
+      hint: 'Reference rates by Phúc Tea model: Cart under 5M VND/month | Take Away under 7M VND/month | Standard under 12M VND/month | Flagship under 30M VND/month. If the price exceeds the reference rate, select a lower score accordingly. Also compare with rental prices in the surrounding area.',
+      options: [
+        { score: 1, label: 'Very high (far exceeds reference for the model)' },
+        { score: 2, label: 'High (above reference rate)' },
+        { score: 3, label: 'Average (at reference rate)' },
+        { score: 4, label: 'Reasonable (below reference rate)' },
+        { score: 5, label: 'Very reasonable (well below reference rate)' },
+      ],
+    },
+    {
+      id: 17,
+      name: 'Growth Potential',
+      description: 'Area\'s future development potential',
+      hint: 'Observe: Are there construction projects underway? Are there planning boards or new infrastructure projects? Is the residential area expanding?',
+      options: [
+        { score: 1, label: 'Very low (area at risk of decline)' },
+        { score: 2, label: 'Low (area has plateaued)' },
+        { score: 3, label: 'Average' },
+        { score: 4, label: 'High (has growth potential)' },
+        { score: 5, label: 'Very high (area is actively developing)' },
+      ],
+    },
+    {
+      id: 18,
+      name: 'Competition',
+      description: 'Level of competition in the area',
+      hint: 'Walk within a 500m radius, count the number of bubble tea, coffee, and beverage shops. Record names and distances. Use the competitor notes section on the previous page.',
+      options: [
+        { score: 1, label: 'Many strong competitors' },
+        { score: 2, label: 'Fierce competition' },
+        { score: 3, label: 'Moderate competition' },
+        { score: 4, label: 'Can differentiate from competitors' },
+        { score: 5, label: 'Few direct competitors' },
+      ],
+    },
+    {
+      id: 19,
+      name: 'Contract Terms',
+      description: 'Favorability of lease terms',
+      hint: 'Review: lease duration (minimum 3 years), rent increase conditions, deposit amount, transfer rights, and termination conditions.',
+      options: [
+        { score: 1, label: 'Very unfavorable' },
+        { score: 2, label: 'Unfavorable' },
+        { score: 3, label: 'Unclear terms' },
+        { score: 4, label: 'Clear and standard' },
+        { score: 5, label: 'Clear and favorable' },
+      ],
+    },
+    {
+      id: 20,
+      name: 'Business Flexibility',
+      description: 'Ability to modify and renovate premises',
+      hint: 'Ask the landlord: Is demolishing walls, repainting, installing outdoor signage, or modifying the storefront allowed? Are there business hour restrictions?',
+      options: [
+        { score: 1, label: 'No modifications allowed' },
+        { score: 2, label: 'Difficult to make changes' },
+        { score: 3, label: 'Limited flexibility' },
+        { score: 4, label: 'Relatively flexible' },
+        { score: 5, label: 'Modifications and renovations allowed' },
+      ],
+    },
+  ],
+
+  verdicts: {
+    feasible: { label: 'FEASIBLE', description: 'Location meets requirements, ready for deployment' },
+    potential: { label: 'HAS POTENTIAL', description: 'Has potential, but needs negotiation or adjustment' },
+    risky: { label: 'HIGH RISK', description: 'Many risks, should investigate further or find another location' },
+  },
+
+  analysisData: {
+    // === I. Location & Accessibility ===
+    1: { // Traffic Flow
+      strengthNote: 'Location has high traffic flow, boosting natural customer reach and increasing take-away revenue',
+      weaknessNote: 'Low traffic flow, few walk-in customers, difficult to generate organic revenue',
+      suggestion: 'Boost online marketing, register on delivery apps (GrabFood, ShopeeFood) and run social media ads to compensate for low foot traffic',
+    },
+    2: { // Visibility
+      strengthNote: 'Shop is easily visible from afar with a prominent storefront, attracting customers from their first pass',
+      weaknessNote: 'Shop is obstructed and hard to see from the road, reducing ability to attract new customers',
+      suggestion: 'Invest in prominent LED signage, banners, or advertising boards placed at visible points on the main road to increase brand recognition',
+    },
+    3: { // Surrounding Amenities
+      strengthNote: 'Surrounding area has many amenities (schools, offices, markets), creating a stable customer base',
+      weaknessNote: 'Area lacks amenities with few points of interest, limiting the potential customer pool',
+      suggestion: 'Focus on building a loyal customer community through membership cards and return-customer promotions',
+    },
+    4: { // Parking
+      strengthNote: 'Spacious and convenient parking available, encouraging dine-in customers and increasing dwell time and order value',
+      weaknessNote: 'Insufficient parking, causing inconvenience for customers, especially motorbike and car riders',
+      suggestion: 'Negotiate additional parking space or partner with a nearby parking lot. If not feasible, focus on a take-away and delivery model',
+    },
+    5: { // Public Transport
+      strengthNote: 'Near bus stops and train stations, convenient public transport access broadens the customer base',
+      weaknessNote: 'Far from public transport, limiting accessibility for customers without personal vehicles',
+      suggestion: 'Target marketing to residents within a 1-2km radius and develop delivery services to expand the service area',
+    },
+
+    // === II. Premises & Space ===
+    6: { // Floor Area
+      strengthNote: 'Spacious floor area, suitable for arranging a complete preparation area, service counter, and comfortable customer seating',
+      weaknessNote: 'Floor area too small, difficult to arrange all necessary zones for a bubble tea shop operation',
+      suggestion: 'Design an optimized layout for small spaces: compact bar counter, prioritize take-away, and use space-saving furniture',
+    },
+    7: { // Floor Plan Shape
+      strengthNote: 'Square floor plan, easy to efficiently arrange the bar counter, service area, and seating',
+      weaknessNote: 'Inconvenient floor plan shape (irregular, many corners), making it difficult to arrange equipment and seating',
+      suggestion: 'Hire an architect to design a layout suited to the floor plan shape, utilizing corners for display areas or private seating',
+    },
+    8: { // Storefront
+      strengthNote: 'Wide and open storefront creating a strong impression on customers and providing prominent brand display',
+      weaknessNote: 'Narrow storefront limiting the ability to attract passersby and outdoor seating space',
+      suggestion: 'Decorate the storefront attractively with LED lights, an outdoor menu board, and creatively use the front space to draw attention',
+    },
+    9: { // Structure & Utilities
+      strengthNote: 'Solid structure with complete utilities (electricity, water, drainage), reducing initial renovation costs',
+      weaknessNote: 'Poor structural condition requiring significant repair investment, substantially increasing initial costs',
+      suggestion: 'Obtain a detailed repair quote before signing the contract. Negotiate with the landlord to share renovation costs or reduce rent during the initial period',
+    },
+    10: { // Lighting & Ventilation
+      strengthNote: 'Good natural lighting and airy, cool space creating a pleasant atmosphere for customers',
+      weaknessNote: 'Lacking natural light and ventilation, stuffy space negatively affecting customer experience',
+      suggestion: 'Install warm ambient lighting, ventilation fans, or air conditioning to improve the space. Use mirrors and reflective materials to increase brightness',
+    },
+
+    // === III. Environment & Legal ===
+    11: { // Security
+      strengthNote: 'Good security in the area, safe for customers and staff, especially in the evening',
+      weaknessNote: 'Area has security concerns, affecting the sense of safety for customers and staff',
+      suggestion: 'Install security cameras, outdoor lighting, and consider hiring security for evening shifts. Contact local authorities for area security updates',
+    },
+    12: { // Environmental Hygiene
+      strengthNote: 'Clean surrounding environment, creating a positive impression for the Phúc Tea brand',
+      weaknessNote: 'Polluted and dirty area, negatively impacting brand image and customer experience',
+      suggestion: 'Regularly clean the area in front of the shop. Place trash bins and plant greenery to improve the immediate surroundings',
+    },
+    13: { // Surrounding Landscape
+      strengthNote: 'Beautiful landscape with abundant greenery, creating a relaxing atmosphere suited to a bubble tea brand',
+      weaknessNote: 'Unattractive surroundings negatively affecting the image and customer perception',
+      suggestion: 'Focus on creating a beautifully decorated interior with Instagram-worthy check-in spots to compensate. Use curtains, plants, and banners to screen the exterior view',
+    },
+    14: { // Legal Documentation
+      strengthNote: 'Complete and valid legal documentation, ensuring legal safety for long-term business operations',
+      weaknessNote: 'Legal documents are unclear or incomplete, posing potential legal risks',
+      suggestion: 'REQUIRE the landlord to complete all documentation before signing the lease. Consult a lawyer to verify the legal status of the premises',
+    },
+    15: { // Property Owner
+      strengthNote: 'Credible and cooperative landlord, creating favorable conditions for long-term business operations',
+      weaknessNote: 'Landlord is difficult to work with and uncooperative, potentially causing business operation challenges',
+      suggestion: 'Draft a detailed contract with clear terms on rights and obligations for both parties. Pre-negotiate renovation and modification conditions',
+    },
+
+    // === IV. Potential & Cost ===
+    16: { // Rental Price
+      strengthNote: 'Reasonable rent compared to market rates, helping optimize operating costs and improve profit margins',
+      weaknessNote: 'High rental price creating significant financial pressure and reducing business profit margins',
+      suggestion: 'Renegotiate the rent, propose a long-term lease for a discount. Consider alternative locations if rent exceeds 15-20% of projected revenue',
+    },
+    17: { // Growth Potential
+      strengthNote: 'Area has high growth potential with increasing population, creating future revenue growth opportunities',
+      weaknessNote: 'Area has limited development potential, making it difficult to expect future revenue growth',
+      suggestion: 'Research area urban planning: if new infrastructure projects (roads, residential areas) are planned, consider investing early. If the area is declining, look for another location',
+    },
+    18: { // Competition
+      strengthNote: 'Few direct competitors in the area, great opportunity to capture a large market share',
+      weaknessNote: 'Area has many strong competitors, making it difficult to differentiate and attract customers',
+      suggestion: 'Analyze competitor menus and pricing, create exclusive Phúc Tea products for differentiation. Focus on service quality and customer loyalty programs',
+    },
+    19: { // Contract Terms
+      strengthNote: 'Clear and favorable contract terms protecting long-term business interests',
+      weaknessNote: 'Unfavorable or unclear contract terms posing potential risks for the tenant',
+      suggestion: 'Renegotiate unfavorable terms, especially lease duration (minimum 3-5 years), rent increase conditions, and transfer rights',
+    },
+    20: { // Business Flexibility
+      strengthNote: 'Landlord allows flexible modifications and renovations, facilitating shop setup and operations',
+      weaknessNote: 'Restrictions on renovations and modifications, creating difficulties in setting up the shop to Phúc Tea standards',
+      suggestion: 'Negotiate and document in writing the permitted scope of renovations before signing the contract. Provide a detailed list of necessary changes for landlord approval',
+    },
+  },
+
+  analysisFallback: {
+    allGood: [
+      'Location meets good standards. Proceed with signing the contract and begin setup according to Phúc Tea standards',
+      'Plan an early grand opening marketing campaign to leverage the location advantage',
+      'Train staff and prepare supplies for the fastest possible opening',
+    ],
+    fillers: [
+      'Prepare a detailed financial plan including renovation costs, 3-month operating expenses, and risk contingency',
+      'Conduct additional surveys at different times of day (morning, noon, evening) for more accurate assessment',
+      'Consult with the Phúc Tea team for professional insights before making a decision',
+    ],
+  },
+};

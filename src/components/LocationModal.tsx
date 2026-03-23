@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { LocationInfo } from '@/types';
 import { PROVINCES } from '@/lib/provinces';
+import { useLanguage } from '@/lib/i18n';
 
 const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
 
@@ -26,6 +27,8 @@ function formatPhone(value: string): string {
 }
 
 export default function LocationModal({ onSubmit }: LocationModalProps) {
+  const { t } = useLanguage();
+
   const [form, setForm] = useState<LocationInfo>({
     addressStreet: '',
     addressWard: '',
@@ -70,7 +73,7 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
 
   const handleGPS = () => {
     if (!navigator.geolocation) {
-      alert('Trình duyệt không hỗ trợ GPS');
+      alert(t.modal.errorGPSNotSupported);
       return;
     }
 
@@ -109,7 +112,7 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
       },
       (err) => {
         console.error('GPS error:', err);
-        alert('Không thể lấy vị trí. Vui lòng cho phép truy cập GPS.');
+        alert(t.modal.errorGPS);
         setGpsLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -153,13 +156,11 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
             <img src="/logo.png" alt="Phúc Tea" className="h-12 w-12 object-contain" />
             <div>
               <h2 className="text-xl font-bold text-primary">Phúc Tea</h2>
-              <p className="text-sm text-gray-300">Bộ tiêu chí đánh giá mặt bằng</p>
+              <p className="text-sm text-gray-300">{t.modal.title}</p>
             </div>
           </div>
           <p className="text-sm text-gray-400 mt-2 italic">
-            {modalStep === 1
-              ? 'Nhập thông tin địa điểm và người khảo sát.'
-              : 'Thông tin bổ sung (không bắt buộc).'}
+            {modalStep === 1 ? t.modal.step1Hint : t.modal.step2Hint}
           </p>
           {/* Step indicator */}
           <div className="flex gap-2 mt-3">
@@ -176,7 +177,7 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
             <>
               <h3 className="font-semibold text-dark flex items-center gap-2">
                 <span className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-dark">1</span>
-                Địa chỉ mặt bằng <span className="text-danger text-xs">*Bắt buộc</span>
+                {t.modal.addressSection} <span className="text-danger text-xs">{t.modal.required}</span>
               </h3>
 
               {/* GPS Button */}
@@ -189,12 +190,12 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                 {gpsLoading ? (
                   <>
                     <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                    Đang lấy vị trí...
+                    {t.modal.gpsLoading}
                   </>
                 ) : (
                   <>
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    Lấy vị trí hiện tại (GPS)
+                    {t.modal.gpsButton}
                   </>
                 )}
               </button>
@@ -203,16 +204,16 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                 <div>
                   <input
                     type="text"
-                    placeholder="Số nhà, tên đường *"
+                    placeholder={t.modal.streetPlaceholder}
                     value={form.addressStreet}
                     onChange={(e) => updateField('addressStreet', e.target.value)}
                     className={`w-full px-4 py-3 rounded-xl border ${errors.addressStreet ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm`}
                   />
-                  {errors.addressStreet && <p className="text-danger text-xs mt-1">Vui lòng nhập số nhà, tên đường</p>}
+                  {errors.addressStreet && <p className="text-danger text-xs mt-1">{t.modal.errorStreet}</p>}
                 </div>
                 <input
                   type="text"
-                  placeholder="Phường / Xã (không bắt buộc)"
+                  placeholder={t.modal.wardPlaceholder}
                   value={form.addressWard}
                   onChange={(e) => updateField('addressWard', e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
@@ -221,18 +222,18 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                   <div>
                     <input
                       type="text"
-                      placeholder="Quận / Huyện *"
+                      placeholder={t.modal.districtPlaceholder}
                       value={form.addressDistrict}
                       onChange={(e) => updateField('addressDistrict', e.target.value)}
                       className={`w-full px-4 py-3 rounded-xl border ${errors.addressDistrict ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm`}
                     />
-                    {errors.addressDistrict && <p className="text-danger text-xs mt-1">Bắt buộc</p>}
+                    {errors.addressDistrict && <p className="text-danger text-xs mt-1">{t.modal.errorDistrict}</p>}
                   </div>
                   {/* Searchable Province Dropdown */}
                   <div ref={provinceContainerRef} className="relative">
                     <input
                       type="text"
-                      placeholder="Tỉnh / TP *"
+                      placeholder={t.modal.cityPlaceholder}
                       value={form.addressCity || provinceSearch}
                       onChange={(e) => {
                         setProvinceSearch(e.target.value);
@@ -242,7 +243,7 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                       onFocus={() => setShowProvinceDropdown(true)}
                       className={`w-full px-4 py-3 rounded-xl border ${errors.addressCity ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm`}
                     />
-                    {errors.addressCity && <p className="text-danger text-xs mt-1">Bắt buộc</p>}
+                    {errors.addressCity && <p className="text-danger text-xs mt-1">{t.modal.errorCity}</p>}
                     {showProvinceDropdown && (
                       <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                         {filteredProvinces.length > 0 ? (
@@ -261,7 +262,7 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                             </button>
                           ))
                         ) : (
-                          <p className="px-4 py-3 text-sm text-gray-400">Không tìm thấy</p>
+                          <p className="px-4 py-3 text-sm text-gray-400">{t.modal.notFound}</p>
                         )}
                       </div>
                     )}
@@ -282,24 +283,24 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
               {/* Surveyor Name */}
               <h3 className="font-semibold text-dark flex items-center gap-2 pt-2">
                 <span className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs font-bold text-dark">2</span>
-                Người khảo sát <span className="text-danger text-xs">*Bắt buộc</span>
+                {t.modal.surveyorSection} <span className="text-danger text-xs">{t.modal.required}</span>
               </h3>
               <div>
                 <input
                   type="text"
-                  placeholder="Họ và tên người khảo sát *"
+                  placeholder={t.modal.surveyorPlaceholder}
                   value={form.surveyorName}
                   onChange={(e) => updateField('surveyorName', e.target.value)}
                   className={`w-full px-4 py-3 rounded-xl border ${errors.surveyorName ? 'border-danger bg-red-50' : 'border-gray-200'} focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm`}
                 />
-                {errors.surveyorName && <p className="text-danger text-xs mt-1">Vui lòng nhập tên người khảo sát</p>}
+                {errors.surveyorName && <p className="text-danger text-xs mt-1">{t.modal.errorSurveyor}</p>}
               </div>
 
               <button
                 onClick={handleStep1Continue}
                 className="w-full bg-primary hover:bg-primary-dark text-dark font-bold py-4 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.98] text-base"
               >
-                Tiếp tục
+                {t.common.continue}
               </button>
             </>
           )}
@@ -315,32 +316,32 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                Quay lại
+                {t.common.back}
               </button>
 
               {/* Address summary */}
               <div className="bg-gray-50 rounded-xl p-3 text-sm">
-                <p className="text-xs text-gray-400 mb-1">Địa chỉ đã nhập</p>
+                <p className="text-xs text-gray-400 mb-1">{t.modal.addressEntered}</p>
                 <p className="font-medium text-dark">{fullAddress}</p>
-                <p className="text-xs text-gray-400 mt-1">Người KS: {form.surveyorName}</p>
+                <p className="text-xs text-gray-400 mt-1">{t.modal.surveyorLabel}: {form.surveyorName}</p>
               </div>
 
               <h3 className="font-semibold text-dark flex items-center gap-2">
                 <span className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-xs font-bold text-gray-600">3</span>
-                Thông tin bổ sung <span className="text-xs text-gray-400 font-normal">(tùy chọn)</span>
+                {t.modal.additionalInfo} <span className="text-xs text-gray-400 font-normal">{t.modal.optional}</span>
               </h3>
 
               <div className="space-y-3">
                 <input
                   type="text"
-                  placeholder="Tên chủ nhà"
+                  placeholder={t.modal.landlordPlaceholder}
                   value={form.landlordName}
                   onChange={(e) => updateField('landlordName', e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
                 />
                 <input
                   type="tel"
-                  placeholder="SĐT chủ nhà (VD: 0901 234 567)"
+                  placeholder={t.modal.phonePlaceholder}
                   value={formatPhone(form.landlordPhone || '')}
                   onChange={(e) => updateField('landlordPhone', e.target.value.replace(/\D/g, ''))}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
@@ -350,7 +351,7 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                     <input
                       type="text"
                       inputMode="numeric"
-                      placeholder="Giá thuê (VNĐ)"
+                      placeholder={t.modal.rentPlaceholder}
                       value={form.rentPrice ? formatNumber(form.rentPrice) : ''}
                       onChange={(e) => updateField('rentPrice', e.target.value.replace(/\D/g, ''))}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
@@ -361,15 +362,15 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                     onChange={(e) => updateField('rentUnit', e.target.value)}
                     className="px-3 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm text-gray-700 bg-gray-50"
                   >
-                    <option value="month">/tháng</option>
-                    <option value="year">/năm</option>
+                    <option value="month">/{t.common.perMonth}</option>
+                    <option value="year">/{t.common.perYear}</option>
                   </select>
                 </div>
                 <div className="relative">
                   <input
                     type="text"
                     inputMode="numeric"
-                    placeholder="Diện tích"
+                    placeholder={t.modal.areaPlaceholder}
                     value={form.areaSqm}
                     onChange={(e) => updateField('areaSqm', e.target.value.replace(/[^\d.]/g, ''))}
                     className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
@@ -383,9 +384,9 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition text-sm"
                 />
                 <div>
-                  <label className="text-xs font-medium text-gray-500 mb-1 block">Ghi chú đối thủ cạnh tranh</label>
+                  <label className="text-xs font-medium text-gray-500 mb-1 block">{t.modal.competitorLabel}</label>
                   <textarea
-                    placeholder="VD: Có quán Gong Cha cách 50m, Highland Coffee đối diện, khu vực có 3 quán trà sữa khác..."
+                    placeholder={t.modal.competitorPlaceholder}
                     value={form.competitorNotes || ''}
                     onChange={(e) => updateField('competitorNotes', e.target.value)}
                     rows={3}
@@ -400,13 +401,13 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
                   onClick={handleFinalSubmit}
                   className="flex-1 border-2 border-gray-200 text-gray-500 font-bold py-3.5 rounded-xl transition-all hover:border-dark hover:text-dark active:scale-[0.98]"
                 >
-                  Bỏ qua
+                  {t.common.skip}
                 </button>
                 <button
                   onClick={handleFinalSubmit}
                   className="flex-1 bg-primary hover:bg-primary-dark text-dark font-bold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl active:scale-[0.98]"
                 >
-                  Bắt đầu khảo sát
+                  {t.common.startSurvey}
                 </button>
               </div>
             </>

@@ -4,17 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import CriteriaCard from '@/components/CriteriaCard';
-import { CATEGORIES, getCriteriaByCategory } from '@/lib/criteria';
 import { LocationInfo, EvaluationScores, getVerdict } from '@/types';
 import { supabase, isSupabaseConfigured, TABLE_EVALUATIONS } from '@/lib/supabase';
-
-const STEP_LABELS = [
-  ...CATEGORIES.map((c) => ({ icon: c.icon, name: c.name })),
-  { icon: '📋', name: 'Xem lại & Gửi' },
-];
+import { useLanguage } from '@/lib/i18n';
 
 export default function EvaluatePage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [locationInfo, setLocationInfo] = useState<LocationInfo | null>(null);
   const [scores, setScores] = useState<EvaluationScores>({});
   const [currentStep, setCurrentStep] = useState(1);
@@ -27,6 +23,21 @@ export default function EvaluatePage() {
 
   const totalSteps = 5;
   const totalAnswered = Object.keys(scores).length;
+
+  const STEP_LABELS = [
+    ...t.categories.map((c) => ({ icon: c.icon, name: c.name })),
+    { icon: '📋', name: t.evaluate.reviewAndSubmit },
+  ];
+
+  const getCriteriaByCategory = (categoryId: number) => {
+    return t.criteriaList.filter((c) => {
+      if (categoryId === 1) return c.id >= 1 && c.id <= 5;
+      if (categoryId === 2) return c.id >= 6 && c.id <= 10;
+      if (categoryId === 3) return c.id >= 11 && c.id <= 15;
+      if (categoryId === 4) return c.id >= 16 && c.id <= 20;
+      return false;
+    });
+  };
 
   // Load location info + restore saved progress
   useEffect(() => {
@@ -75,6 +86,7 @@ export default function EvaluatePage() {
       const firstUnanswered = criteria.find((c) => scores[String(c.id)] === undefined);
       setFocusedCriterionId(firstUnanswered?.id ?? criteria[0]?.id ?? null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, scores]);
 
   const handleSelect = (criterionId: number, score: number) => {
@@ -141,7 +153,7 @@ export default function EvaluatePage() {
       const isVideo = f.type.startsWith('video/');
       const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
       if (f.size > maxSize) {
-        alert(`${f.name} quá lớn (tối đa ${isVideo ? '50MB' : '10MB'})`);
+        alert(`${f.name} ${t.modal.fileTooLarge} ${isVideo ? '50MB' : '10MB'})`);
         return false;
       }
       return true;
@@ -328,7 +340,7 @@ export default function EvaluatePage() {
             address: `${locationInfo.addressStreet}, ${locationInfo.addressWard}, ${locationInfo.addressDistrict}, ${locationInfo.addressCity}`,
             totalScore,
             verdict,
-            surveyorName: locationInfo.surveyorName || 'Không rõ',
+            surveyorName: locationInfo.surveyorName || 'N/A',
           }),
         });
       } catch { /* Email failure shouldn't block */ }
@@ -398,11 +410,11 @@ export default function EvaluatePage() {
             </span>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-primary">
-                {totalAnswered}/20 tiêu chí
+                {totalAnswered}/20 {t.common.criteria}
               </span>
               {totalAnswered > 0 && totalAnswered < 20 && (
                 <span className="text-[10px] text-gray-400">
-                  ~{minutesLeft} phút
+                  ~{minutesLeft} {t.common.minutes}
                 </span>
               )}
             </div>
@@ -431,7 +443,7 @@ export default function EvaluatePage() {
         <div className="bg-white rounded-xl p-3 border border-gray-100 flex items-center gap-2">
           <span className="text-lg">📍</span>
           <div className="min-w-0">
-            <p className="text-xs text-gray-400">Đang khảo sát</p>
+            <p className="text-xs text-gray-400">{t.evaluate.surveying}</p>
             <p className="text-sm font-medium text-dark truncate">
               {locationInfo.addressStreet}, {locationInfo.addressWard}, {locationInfo.addressDistrict}, {locationInfo.addressCity}
             </p>
@@ -479,12 +491,12 @@ export default function EvaluatePage() {
         <div className="max-w-4xl mx-auto px-4 pb-28 space-y-4">
           {/* Review Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="font-bold text-dark mb-1">📋 Xem lại điểm số</h3>
+            <h3 className="font-bold text-dark mb-1">{t.evaluate.reviewTitle}</h3>
             <p className="text-xs text-gray-400 italic mb-4">
-              Nhấn vào điểm số để thay đổi trước khi gửi.
+              {t.evaluate.reviewHint}
             </p>
 
-            {CATEGORIES.map((cat) => {
+            {t.categories.map((cat) => {
               const catCriteria = getCriteriaByCategory(cat.id);
               const catScore = catCriteria.reduce((sum, c) => sum + (scores[String(c.id)] || 0), 0);
               return (
@@ -526,7 +538,7 @@ export default function EvaluatePage() {
 
             {/* Total score preview */}
             <div className="border-t border-gray-100 pt-3 mt-3 flex items-center justify-between">
-              <span className="text-sm font-bold text-dark">Tổng điểm</span>
+              <span className="text-sm font-bold text-dark">{t.common.totalScore}</span>
               <span className="text-2xl font-black text-primary">
                 {totalScorePreview ?? '--'}/100
               </span>
@@ -535,9 +547,9 @@ export default function EvaluatePage() {
 
           {/* Upload Section */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <h3 className="font-bold text-dark mb-1">📸 Hình ảnh & Video mặt bằng</h3>
+            <h3 className="font-bold text-dark mb-1">{t.evaluate.uploadTitle}</h3>
             <p className="text-xs text-gray-400 italic mb-4">
-              Chụp ảnh mặt tiền, bên trong, khu vực xung quanh. Bước này không bắt buộc.
+              {t.evaluate.uploadHint}
             </p>
 
             <label className="block border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition">
@@ -553,9 +565,9 @@ export default function EvaluatePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <p className="text-sm text-gray-500 font-medium">
-                {uploadedFiles.length >= 10 ? 'Đã đạt giới hạn 10 file' : 'Nhấn để chọn ảnh hoặc video'}
+                {uploadedFiles.length >= 10 ? t.evaluate.uploadLimit : t.evaluate.uploadButton}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Ảnh tối đa 10MB, video tối đa 50MB. Tối đa 10 file.</p>
+              <p className="text-xs text-gray-400 mt-1">{t.evaluate.uploadMaxSize}</p>
             </label>
 
             {uploadPreviews.length > 0 && (
@@ -585,7 +597,7 @@ export default function EvaluatePage() {
             )}
 
             {uploadedFiles.length > 0 && (
-              <p className="text-xs text-gray-400 mt-2 text-center">{uploadedFiles.length}/10 file đã chọn</p>
+              <p className="text-xs text-gray-400 mt-2 text-center">{uploadedFiles.length}/10 {t.evaluate.filesSelected}</p>
             )}
           </div>
         </div>
@@ -599,7 +611,7 @@ export default function EvaluatePage() {
               onClick={handleBack}
               className="px-6 py-4 rounded-xl font-bold text-sm border-2 border-gray-200 text-gray-500 hover:border-dark hover:text-dark transition-all"
             >
-              Quay lại
+              {t.common.back}
             </button>
           )}
 
@@ -614,8 +626,8 @@ export default function EvaluatePage() {
               }`}
             >
               {canProceed()
-                ? 'Tiếp tục'
-                : `Còn ${5 - stepAnswered} tiêu chí chưa đánh giá`}
+                ? t.common.continue
+                : `${5 - stepAnswered} ${t.evaluate.remainingCriteria}`}
             </button>
           ) : (
             <button
@@ -630,10 +642,10 @@ export default function EvaluatePage() {
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-5 h-5 border-2 border-dark/30 border-t-dark rounded-full animate-spin" />
-                  {uploading ? 'Đang tải ảnh...' : 'Đang xử lý...'}
+                  {uploading ? t.evaluate.uploading : t.evaluate.processing}
                 </span>
               ) : (
-                'Xem kết quả đánh giá'
+                t.evaluate.viewResults
               )}
             </button>
           )}
