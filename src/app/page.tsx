@@ -4,13 +4,19 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LocationModal from '@/components/LocationModal';
 import { LocationInfo } from '@/types';
-import { useLanguage } from '@/lib/i18n';
+import { useLanguage, Language } from '@/lib/i18n';
+
+const LANG_OPTIONS: { code: Language; label: string }[] = [
+  { code: 'vi', label: 'VI' },
+  { code: 'en', label: 'EN' },
+  { code: 'zh', label: '中' },
+];
 
 export default function Home() {
   const [showModal, setShowModal] = useState(false);
   const [historyCount, setHistoryCount] = useState(0);
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
 
   useEffect(() => {
     const history = JSON.parse(localStorage.getItem('survey_history') || '[]');
@@ -24,7 +30,24 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-bg flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen bg-bg flex flex-col items-center justify-center p-4 relative">
+      {/* Language Switcher */}
+      <div className="absolute top-4 right-4 flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-lg p-0.5 shadow-sm border border-gray-200">
+        {LANG_OPTIONS.map((opt) => (
+          <button
+            key={opt.code}
+            onClick={() => setLang(opt.code)}
+            className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${
+              lang === opt.code
+                ? 'bg-primary text-dark shadow-sm'
+                : 'text-gray-400 hover:text-dark hover:bg-gray-100'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       <div className="text-center space-y-6 max-w-md mx-auto">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
