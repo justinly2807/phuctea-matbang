@@ -10,18 +10,30 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Simple hardcoded auth
-    if (email === 'ceo@phuctea.com.vn' && password === '31032017') {
-      localStorage.setItem('admin_auth', 'true');
-      localStorage.setItem('admin_login_time', Date.now().toString());
-      router.push('/admin/dashboard');
-    } else {
-      setError('Email hoặc mật khẩu không đúng');
+    try {
+      const res = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem('admin_auth', 'true');
+        localStorage.setItem('admin_login_time', Date.now().toString());
+        router.push('/admin/dashboard');
+      } else {
+        setError(data.error || 'Email hoặc mật khẩu không đúng');
+        setLoading(false);
+      }
+    } catch {
+      setError('Lỗi kết nối. Vui lòng thử lại.');
       setLoading(false);
     }
   };

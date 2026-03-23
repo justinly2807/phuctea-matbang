@@ -10,6 +10,7 @@ const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
 
 interface LocationModalProps {
   onSubmit: (info: LocationInfo) => void;
+  onClose?: () => void;
 }
 
 // Format number with dots: 9000000 → 9.000.000
@@ -26,7 +27,7 @@ function formatPhone(value: string): string {
   return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
 }
 
-export default function LocationModal({ onSubmit }: LocationModalProps) {
+export default function LocationModal({ onSubmit, onClose }: LocationModalProps) {
   const { t } = useLanguage();
 
   const [form, setForm] = useState<LocationInfo>({
@@ -147,11 +148,22 @@ export default function LocationModal({ onSubmit }: LocationModalProps) {
   );
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[95vh] overflow-y-auto shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
+      <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl max-h-[95vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="bg-dark text-white p-5 sm:rounded-t-2xl rounded-t-2xl">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="bg-dark text-white p-5 sm:rounded-t-2xl rounded-t-2xl relative">
+          {/* Close button */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-gray-300 hover:text-white transition"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+          <div className="flex items-center gap-3 mb-2 pr-10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Phúc Tea" className="h-12 w-12 object-contain" />
             <div>

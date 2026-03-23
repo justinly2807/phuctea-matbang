@@ -132,7 +132,7 @@ export default function Home() {
         </button>
       </div>
 
-      {showModal && <LocationModal onSubmit={handleSubmit} />}
+      {showModal && <LocationModal onSubmit={handleSubmit} onClose={() => setShowModal(false)} />}
     </main>
   );
 }
